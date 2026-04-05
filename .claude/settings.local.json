@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/zhili/Documents/**)",
+      "Bash(unzip -o \"C:/Users/zhili/Documents/dialog-npc-mod/dialog-npc-mod-1.21.1.zip\" -d .)",
+      "Bash(unzip -q dialog-npc-mod-1.21.1.zip)",
+      "Bash(rm dialog-npc-mod-1.21.1.zip)",
+      "Bash(dir \"C:\\\\Users\\\\zhili\\\\Documents\\\\Cobblemania-Economia\")",
+      "Bash(./gradlew build:*)",
+      "Bash(gradle wrapper:*)",
+      "Bash(curl:*)",
+      "Bash(./gradlew.bat build:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "dialognpc",
+  "version": "${version}",
+  "name": "Dialog NPC",
+  "description": "Adds configurable NPCs with custom dialog boxes and clickable options.",
+  "authors": ["You"],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.example.dialognpc.DialogNpcMod"],
+    "client": ["com.example.dialognpc.DialogNpcModClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=17"
+  }
+}

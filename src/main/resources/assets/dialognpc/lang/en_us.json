@@ -1,0 +1,13 @@
+{
+  "entity.dialognpc.dialog_npc": "Dialog NPC",
+  "dialognpc.dialog.close": "Close",
+  "dialognpc.command.created": "NPC '%s' spawned. UUID: %s",
+  "dialognpc.command.not_npc": "That entity is not a Dialog NPC.",
+  "dialognpc.command.title_set": "Title set to: %s",
+  "dialognpc.command.text_set": "Dialog text updated.",
+  "dialognpc.command.option_added": "Option added at index %d.",
+  "dialognpc.command.options_cleared": "All options cleared.",
+  "dialognpc.command.texture_set": "Texture set to: %s",
+  "dialognpc.command.removed": "NPC removed.",
+  "dialognpc.command.info": "=== NPC Info ===\nTitle: %s\nText: %s\nTexture: %s\nOptions: %d"
+}
