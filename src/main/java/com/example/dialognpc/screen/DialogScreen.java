@@ -115,13 +115,13 @@ public class DialogScreen extends Screen {
         // Hat overlay
         ctx.drawTexture(npcTexture, px, py, PORTRAIT_SZ, PORTRAIT_SZ, 40, 8, 8, 8, 64, 64);
 
-        // Wrapped text
+        // Wrapped text - render after portrait to ensure proper blending
         int tx   = px + PORTRAIT_SZ + BOX_PADDING;
-        int ty   = py;
+        int ty   = py + 2;
         int maxW = BOX_WIDTH - PORTRAIT_SZ - BOX_PADDING * 3;
         List<OrderedText> lines = this.textRenderer.wrapLines(Text.literal(dialogText), maxW);
         for (OrderedText line : lines) {
-            ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, true);
+            ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, false);
             ty += this.textRenderer.fontHeight + 2;
         }
     }
