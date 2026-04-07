@@ -82,8 +82,8 @@ public class DialogScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // 1.21.1: renderBackground no longer takes mouse coords
-        super.renderBackground(ctx, mouseX, mouseY, delta);
+        // Fill with semi-transparent black instead of blurred background
+        ctx.fill(0, 0, this.width, this.height, 0x88000000);
         drawDialog(ctx);
         super.render(ctx, mouseX, mouseY, delta);
     }
