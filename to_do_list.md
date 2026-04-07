@@ -11,6 +11,7 @@
 - [x] Soporte para sonidos en opciones de diálogo
 - [x] Soporte para partículas en opciones de diálogo
 - [x] Comando addoption mejorado con sonido y partículas
+- [x] Sistema de traducciones para textos, títulos, nombres y opciones
 
 ## Pendiente
 
