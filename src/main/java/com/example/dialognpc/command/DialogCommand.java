@@ -183,6 +183,75 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc setheadtracking <entity> <true|false>
+                .then(CommandManager.literal("setheadtracking")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("enabled", StringArgumentType.word())
+                            .executes(ctx -> setHeadTracking(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "enabled")))
+                        )
+                    )
+                )
+
+                // /npc setbodyrotation <entity> <true|false>
+                .then(CommandManager.literal("setbodyrotation")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("enabled", StringArgumentType.word())
+                            .executes(ctx -> setBodyRotation(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "enabled")))
+                        )
+                    )
+                )
+
+                // /npc setcanmove <entity> <true|false>
+                .then(CommandManager.literal("setcanmove")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("enabled", StringArgumentType.word())
+                            .executes(ctx -> setCanMove(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "enabled")))
+                        )
+                    )
+                )
+
+                // /npc setcanrotate <entity> <true|false>
+                .then(CommandManager.literal("setcanrotate")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("enabled", StringArgumentType.word())
+                            .executes(ctx -> setCanRotate(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "enabled")))
+                        )
+                    )
+                )
+
+                // /npc settexturetype <entity> <vanilla|player|url|base64>
+                .then(CommandManager.literal("settexturetype")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("type", StringArgumentType.word())
+                            .executes(ctx -> setTextureType(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "type")))
+                        )
+                    )
+                )
+
+                // /npc setcustomtexture <entity> <data>
+                // For player: username
+                // For url: full URL
+                // For base64: base64 encoded image data
+                .then(CommandManager.literal("setcustomtexture")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("data", StringArgumentType.greedyString())
+                            .executes(ctx -> setCustomTexture(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "data")))
+                        )
+                    )
+                )
+
                 // /npc info <entity>
                 .then(CommandManager.literal("info")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -336,6 +405,65 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setHeadTracking(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(enabled);
+        npc.setHeadTracking(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aHead tracking " + (value ? "§eenabled" : "§cdisabled")), false);
+        return 1;
+    }
+
+    private static int setBodyRotation(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(enabled);
+        npc.setBodyRotation(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aBody rotation " + (value ? "§eenabled" : "§cdisabled")), false);
+        return 1;
+    }
+
+    private static int setCanMove(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(enabled);
+        npc.setCanMove(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aMovement " + (value ? "§eenabled" : "§cdisabled")), false);
+        return 1;
+    }
+
+    private static int setCanRotate(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(enabled);
+        npc.setCanRotate(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aRotation " + (value ? "§eenabled" : "§cdisabled")), false);
+        return 1;
+    }
+
+    private static int setTextureType(CommandContext<ServerCommandSource> ctx, Entity entity, String type) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        String validType = switch (type.toLowerCase()) {
+            case "vanilla", "player", "url", "base64" -> type.toLowerCase();
+            default -> {
+                ctx.getSource().sendError(Text.literal("Invalid texture type. Use: vanilla, player, url, or base64"));
+                yield "vanilla";
+            }
+        };
+        npc.setTextureType(validType);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aTexture type set to: §e" + validType), false);
+        return 1;
+    }
+
+    private static int setCustomTexture(CommandContext<ServerCommandSource> ctx, Entity entity, String data) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setCustomTextureData(data);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aCustom texture data set: §7" + (data.length() > 50 ? data.substring(0, 50) + "..." : data)), false);
+        return 1;
+    }
+
     private static int showInfo(CommandContext<ServerCommandSource> ctx, Entity entity) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -352,6 +480,17 @@ public class DialogCommand {
         sb.append(String.format("§7Border:        §f0x%08X\n", npc.getBorderColor()));
         sb.append("§7Btn Width:     §e").append(npc.getButtonWidth()).append("\n");
         sb.append("§7Options Height:§e").append(npc.getOptionsHeight() == 0 ? "auto" : npc.getOptionsHeight() + "px").append("\n");
+        // Behavior flags
+        sb.append("§7Head Tracking: ").append(npc.isHeadTracking() ? "§aYes" : "§cNo").append("\n");
+        sb.append("§7Body Rotation: ").append(npc.isBodyRotation() ? "§aYes" : "§cNo").append("\n");
+        sb.append("§7Can Move:      ").append(npc.isCanMove() ? "§aYes" : "§cNo").append("\n");
+        sb.append("§7Can Rotate:    ").append(npc.isCanRotate() ? "§aYes" : "§cNo").append("\n");
+        // Custom texture
+        sb.append("§7Texture Type:  §e").append(npc.getTextureType()).append("\n");
+        if (!npc.getCustomTextureData().isEmpty()) {
+            String data = npc.getCustomTextureData();
+            sb.append("§7Custom Data:   §f").append(data.length() > 40 ? data.substring(0, 40) + "..." : data).append("\n");
+        }
         sb.append("§7Options (").append(npc.getDialogOptions().size()).append("):\n");
         for (int i = 0; i < npc.getDialogOptions().size(); i++) {
             DialogNpcEntity.DialogOption opt = npc.getDialogOptions().get(i);

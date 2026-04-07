@@ -1,6 +1,7 @@
 package com.example.dialognpc.entity;
 
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.ai.goal.LookAroundGoal;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
@@ -37,6 +38,16 @@ public class DialogNpcEntity extends PathAwareEntity {
     private int titleTextColor = 0xFFFFD966;
     private int optionsHeight = 0; // 0 = auto
 
+    // Behavior flags
+    private boolean headTracking = true;   // Head follows players
+    private boolean bodyRotation = false;  // Body rotates to face players
+    private boolean canMove = false;       // Can move from spawn position
+    private boolean canRotate = false;     // Can rotate (yaw/pitch changes)
+
+    // Custom texture (base64 or player skin name)
+    private String customTextureData = ""; // base64 skin data or player name
+    private String textureType = "vanilla"; // vanilla, player, url, base64
+
     public DialogNpcEntity(EntityType<? extends DialogNpcEntity> type, World world) {
         super(type, world);
         this.setInvulnerable(true);
@@ -51,8 +62,13 @@ public class DialogNpcEntity extends PathAwareEntity {
 
     @Override
     protected void initGoals() {
-        this.goalSelector.add(1, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F, 1.0F));
-        this.goalSelector.add(2, new LookAroundGoal(this));
+        if (headTracking) {
+            this.goalSelector.add(1, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F, 1.0F));
+        }
+        if (bodyRotation) {
+            this.goalSelector.add(2, new LookAtEntityGoal(this, PlayerEntity.class, 16.0F, 0.5F));
+        }
+        this.goalSelector.add(3, new LookAroundGoal(this));
     }
 
     @Override
@@ -67,7 +83,10 @@ public class DialogNpcEntity extends PathAwareEntity {
     public boolean isInvulnerableTo(DamageSource source) { return true; }
 
     @Override
-    public boolean isPushable() { return false; }
+    public boolean isPushable() { return !canMove; }
+
+    @Override
+    public boolean isImmobile() { return !canMove; }
 
     // ── NBT ──────────────────────────────────────────────────────────────
 
@@ -83,6 +102,14 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putInt("BorderColor", borderColor);
         nbt.putInt("TitleTextColor", titleTextColor);
         nbt.putInt("OptionsHeight", optionsHeight);
+        // Behavior flags
+        nbt.putBoolean("HeadTracking", headTracking);
+        nbt.putBoolean("BodyRotation", bodyRotation);
+        nbt.putBoolean("CanMove", canMove);
+        nbt.putBoolean("CanRotate", canRotate);
+        // Custom texture
+        nbt.putString("CustomTextureData", customTextureData);
+        nbt.putString("TextureType", textureType);
         NbtList list = new NbtList();
         for (DialogOption opt : options) {
             NbtCompound c = new NbtCompound();
@@ -105,6 +132,19 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("BorderColor"))   borderColor   = nbt.getInt("BorderColor");
         if (nbt.contains("TitleTextColor")) titleTextColor = nbt.getInt("TitleTextColor");
         if (nbt.contains("OptionsHeight")) optionsHeight = nbt.getInt("OptionsHeight");
+        // Behavior flags
+        if (nbt.contains("HeadTracking")) headTracking = nbt.getBoolean("HeadTracking");
+        if (nbt.contains("BodyRotation")) bodyRotation = nbt.getBoolean("BodyRotation");
+        if (nbt.contains("CanMove"))      canMove      = nbt.getBoolean("CanMove");
+        if (nbt.contains("CanRotate"))    canRotate    = nbt.getBoolean("CanRotate");
+        // Custom texture
+        if (nbt.contains("CustomTextureData")) customTextureData = nbt.getString("CustomTextureData");
+        if (nbt.contains("TextureType"))   textureType   = nbt.getString("TextureType");
+        // Re-init goals if world is loaded
+        if (this.getWorld() != null) {
+            this.goalSelector.clear(g -> true);
+            this.initGoals();
+        }
         options.clear();
         if (nbt.contains("DialogOptions", NbtElement.LIST_TYPE)) {
             NbtList list = nbt.getList("DialogOptions", NbtElement.COMPOUND_TYPE);
@@ -140,4 +180,27 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setTitleTextColor(int c)     { this.titleTextColor = c; }
     public int    getOptionsHeight()           { return optionsHeight; }
     public void   setOptionsHeight(int h)      { this.optionsHeight = h; }
+
+    // Behavior getters/setters
+    public boolean isHeadTracking()            { return headTracking; }
+    public void   setHeadTracking(boolean v)   { this.headTracking = v; refreshGoals(); }
+    public boolean isBodyRotation()            { return bodyRotation; }
+    public void   setBodyRotation(boolean v)   { this.bodyRotation = v; refreshGoals(); }
+    public boolean isCanMove()                 { return canMove; }
+    public void   setCanMove(boolean v)        { this.canMove = v; }
+    public boolean isCanRotate()               { return canRotate; }
+    public void   setCanRotate(boolean v)      { this.canRotate = v; }
+
+    // Custom texture getters/setters
+    public String getCustomTextureData()       { return customTextureData; }
+    public void   setCustomTextureData(String v) { this.customTextureData = v; }
+    public String getTextureType()             { return textureType; }
+    public void   setTextureType(String v)     { this.textureType = v; }
+
+    private void refreshGoals() {
+        if (this.getWorld() != null) {
+            this.goalSelector.clear(g -> true);
+            this.initGoals();
+        }
+    }
 }
