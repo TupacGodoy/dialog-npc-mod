@@ -88,6 +88,24 @@ Color format: `0xAARRGGBB` (hex). Example: `0xFF2D2D5A` = purple-blue.
 ```
 Width in pixels (50-400). Buttons are centered automatically.
 
+### Set border color
+```
+/npc setbordercolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF404080
+```
+Color format: `0xAARRGGBB` (hex). Example: `0xFF404080` = purple-blue border.
+
+### Set title text color
+```
+/npc settitletextcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFFFFD966
+```
+Color format: `0xAARRGGBB` (hex). Example: `0xFFFFD966` = yellow-gold text.
+
+### Set options area height
+```
+/npc setoptionsheight @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0
+```
+Height in pixels (0 = auto, adjusts to fit buttons). Use custom values to add extra space.
+
 ### Show NPC info
 ```
 /npc info @e[type=dialognpc:dialog_npc,sort=nearest,limit=1]
