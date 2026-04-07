@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Environment(EnvType.CLIENT)
 public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, PlayerEntityModel<DialogNpcEntity>> {
@@ -27,6 +28,11 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
     // Cache for dynamic textures (URL/base64)
     private static final Map<String, Identifier> DYNAMIC_TEXTURES = new HashMap<>();
 
+    {
+        // Static initializer to confirm renderer is loaded
+        System.out.println("[DialogNpcRenderer] Renderer class loaded!");
+    }
+
     public DialogNpcRenderer(EntityRendererFactory.Context ctx) {
         // false = slim=false (Steve model). Change to true for Alex/slim model.
         super(ctx, new PlayerEntityModel<>(ctx.getPart(EntityModelLayers.PLAYER), false), 0.5F);
@@ -35,14 +41,19 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
     @Override
     public Identifier getTexture(DialogNpcEntity entity) {
         String textureType = entity.getTextureType();
+        System.out.println("[DialogNpcRenderer] getTexture called! textureType=" + textureType + ", customData=" + entity.getCustomTextureData());
 
         switch (textureType) {
             case "player":
                 // Player skin by username - fetch from Mojang servers
                 String playerName = entity.getCustomTextureData();
+                System.out.println("[DialogNpcRenderer] Player skin requested for: " + playerName);
                 if (playerName != null && !playerName.isEmpty()) {
-                    return loadPlayerSkin(playerName);
+                    Identifier result = loadPlayerSkin(playerName);
+                    System.out.println("[DialogNpcRenderer] Returning texture: " + result);
+                    return result;
                 }
+                System.out.println("[DialogNpcRenderer] Empty player name, returning FALLBACK");
                 return FALLBACK;
 
             case "url":
@@ -72,33 +83,94 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
 
     private Identifier loadPlayerSkin(String playerName) {
         String cacheKey = "player_" + playerName.toLowerCase();
-        return DYNAMIC_TEXTURES.computeIfAbsent(cacheKey, key -> {
+        Identifier cached = DYNAMIC_TEXTURES.get(cacheKey);
+        if (cached != null) {
+            LOGGER.info("Using cached player skin for: {}", playerName);
+            return cached;
+        }
+
+        // Try to load skin synchronously but on an IO thread
+        // This is needed because getTexture() is called during rendering
+        loadPlayerSkinSync(playerName, cacheKey);
+
+        // Return the newly loaded texture (or fallback if failed)
+        cached = DYNAMIC_TEXTURES.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        LOGGER.warn("Using fallback texture for player: {}", playerName);
+        return FALLBACK;
+    }
+
+    private void loadPlayerSkinSync(String playerName, String cacheKey) {
+        // Run on IO thread pool to avoid blocking main thread
+        CompletableFuture.runAsync(() -> {
             try {
-                // Use Crafatar API for direct skin access (simpler, no JSON parsing)
-                // Crafatar: https://crafatar.com/skins/{uuid} or /skins/{name}
+                LOGGER.info("Loading player skin for: {} from Crafatar", playerName);
+
+                // Use Crafatar API for direct skin access
                 String skinUrl = "https://crafatar.com/skins/" + playerName;
                 java.net.URI uri = java.net.URI.create(skinUrl);
 
-                // Set user-agent to avoid being blocked
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) uri.toURL().openConnection();
                 conn.setRequestProperty("User-Agent", "DialogNpcMod/1.0");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                conn.setInstanceFollowRedirects(true);
+
+                int responseCode = conn.getResponseCode();
+                LOGGER.info("Crafatar HTTP response for {}: {}", playerName, responseCode);
+
+                if (responseCode != 200) {
+                    LOGGER.error("Crafatar returned HTTP {} for {}", responseCode, playerName);
+                    return;
+                }
 
                 java.io.InputStream stream = conn.getInputStream();
-                NativeImage image = NativeImage.read(stream);
+                byte[] bytes = stream.readAllBytes();
                 stream.close();
                 conn.disconnect();
 
+                if (bytes.length == 0) {
+                    LOGGER.error("Empty response from Crafatar for {}", playerName);
+                    return;
+                }
+
+                NativeImage image = NativeImage.read(bytes);
+                LOGGER.info("Player skin loaded for {}: {}x{}, {} bytes", playerName, image.getWidth(), image.getHeight(), bytes.length);
+
                 Identifier textureId = Identifier.of("dialognpc", "player_" + playerName.toLowerCase());
-                registerTexture(textureId, image);
-                LOGGER.info("Loaded player skin for: {} from Crafatar", playerName);
-                return textureId;
+
+                // Register texture on main thread
+                MinecraftClient mc = MinecraftClient.getInstance();
+                mc.execute(() -> {
+                    try {
+                        registerTexture(textureId, image);
+                        DYNAMIC_TEXTURES.put(cacheKey, textureId);
+                        LOGGER.info("Player skin registered for: {} -> {}", playerName, textureId);
+
+                        // Mark renderer for update
+                        mc.worldRenderer.reload();
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to register texture for {}: {}", playerName, e.getMessage(), e);
+                    }
+                });
+
+                // Wait a bit for the main thread to process
+                Thread.sleep(50);
+
             } catch (Exception e) {
-                LOGGER.error("Failed to load player skin for: {} - {}", playerName, e.getMessage());
-                return FALLBACK;
+                LOGGER.error("Failed to load player skin for: {} - {}", playerName, e.getMessage(), e);
             }
         });
+
+        // Wait briefly for async load to complete (max 500ms)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private Identifier loadTextureFromUrl(String url) {

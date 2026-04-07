@@ -352,8 +352,37 @@ public class DialogCommand {
     private static int setTexture(CommandContext<ServerCommandSource> ctx, Entity entity, String texture) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
-        npc.setNpcTexture(texture);
-        ctx.getSource().sendFeedback(() -> Text.literal("§aTexture set to: §7" + texture), false);
+
+        // Auto-detect texture type based on the texture string format
+        String detectedType = "vanilla";
+        String customData = "";
+
+        if (texture.startsWith("http://") || texture.startsWith("https://")) {
+            // URL texture
+            detectedType = "url";
+            customData = texture;
+        } else if (texture.startsWith("data:image")) {
+            // Base64 data URI
+            detectedType = "base64";
+            customData = texture;
+        } else if (texture.length() > 0 && !texture.contains(":") && !texture.contains("/")) {
+            // Likely a player username (no colons or slashes)
+            // Check if it looks like a Minecraft username (3-16 chars, alphanumeric + underscores)
+            if (texture.matches("^[a-zA-Z0-9_]{3,16}$")) {
+                detectedType = "player";
+                customData = texture;
+            }
+        }
+
+        final String finalType = detectedType;
+        npc.setTextureType(detectedType);
+        if (!customData.isEmpty()) {
+            npc.setCustomTextureData(customData);
+        } else {
+            npc.setNpcTexture(texture);
+        }
+
+        ctx.getSource().sendFeedback(() -> Text.literal("§aTexture set to: §7" + texture + " §7(type: §e" + finalType + "§7)"), false);
         return 1;
     }
 
