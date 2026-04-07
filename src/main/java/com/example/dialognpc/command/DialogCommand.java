@@ -57,6 +57,17 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc settitlekey <entity> <translationKey>
+                .then(CommandManager.literal("settitlekey")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                            .executes(ctx -> setTitleKey(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "translationKey")))
+                        )
+                    )
+                )
+
                 // /npc settext <entity> <text>
                 .then(CommandManager.literal("settext")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -64,6 +75,17 @@ public class DialogCommand {
                             .executes(ctx -> setText(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
                                 StringArgumentType.getString(ctx, "text")))
+                        )
+                    )
+                )
+
+                // /npc settextkey <entity> <translationKey>
+                .then(CommandManager.literal("settextkey")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                            .executes(ctx -> setTextKey(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "translationKey")))
                         )
                     )
                 )
@@ -82,7 +104,7 @@ public class DialogCommand {
                                     EntityArgumentType.getEntity(ctx, "target"),
                                     StringArgumentType.getString(ctx, "label"),
                                     StringArgumentType.getString(ctx, "command"),
-                                    null, null, 0))
+                                    null, null, 0, null))
                                 .then(CommandManager.argument("sound", StringArgumentType.string())
                                     .suggests((ctx, builder) -> {
                                         net.minecraft.registry.Registries.SOUND_EVENT.getIndexedEntries().forEach(entry -> {
@@ -95,7 +117,7 @@ public class DialogCommand {
                                         StringArgumentType.getString(ctx, "label"),
                                         StringArgumentType.getString(ctx, "command"),
                                         StringArgumentType.getString(ctx, "sound"),
-                                        null, 0))
+                                        null, 0, null))
                                     .then(CommandManager.argument("particle", StringArgumentType.string())
                                         .suggests((ctx, builder) -> {
                                             net.minecraft.registry.Registries.PARTICLE_TYPE.getIndexedEntries().forEach(entry -> {
@@ -109,7 +131,7 @@ public class DialogCommand {
                                             StringArgumentType.getString(ctx, "command"),
                                             StringArgumentType.getString(ctx, "sound"),
                                             StringArgumentType.getString(ctx, "particle"),
-                                            5))
+                                            5, null))
                                         .then(CommandManager.argument("particleCount", IntegerArgumentType.integer(0, 100))
                                             .executes(ctx -> addOption(ctx,
                                                 EntityArgumentType.getEntity(ctx, "target"),
@@ -117,7 +139,18 @@ public class DialogCommand {
                                                 StringArgumentType.getString(ctx, "command"),
                                                 StringArgumentType.getString(ctx, "sound"),
                                                 StringArgumentType.getString(ctx, "particle"),
-                                                IntegerArgumentType.getInteger(ctx, "particleCount")))
+                                                IntegerArgumentType.getInteger(ctx, "particleCount"),
+                                                null))
+                                            .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                                                .executes(ctx -> addOption(ctx,
+                                                    EntityArgumentType.getEntity(ctx, "target"),
+                                                    StringArgumentType.getString(ctx, "label"),
+                                                    StringArgumentType.getString(ctx, "command"),
+                                                    StringArgumentType.getString(ctx, "sound"),
+                                                    StringArgumentType.getString(ctx, "particle"),
+                                                    IntegerArgumentType.getInteger(ctx, "particleCount"),
+                                                    StringArgumentType.getString(ctx, "translationKey")))
+                                            )
                                         )
                                     )
                                 )
@@ -133,6 +166,20 @@ public class DialogCommand {
                             .executes(ctx -> removeOption(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
                                 IntegerArgumentType.getInteger(ctx, "index")))
+                        )
+                    )
+                )
+
+                // /npc setoptionkey <entity> <index> <translationKey>
+                .then(CommandManager.literal("setoptionkey")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("index", IntegerArgumentType.integer(0))
+                            .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                                .executes(ctx -> setOptionKey(ctx,
+                                    EntityArgumentType.getEntity(ctx, "target"),
+                                    IntegerArgumentType.getInteger(ctx, "index"),
+                                    StringArgumentType.getString(ctx, "translationKey")))
+                            )
                         )
                     )
                 )
@@ -370,6 +417,16 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc setnamekey <entity> <translationKey>
+                // Sets the NPC's name translation key (for localized names)
+                .then(CommandManager.literal("setnamekey")
+                    .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                        .executes(ctx -> setNpcNameKey(ctx,
+                            EntityArgumentType.getEntity(ctx, "target"),
+                            StringArgumentType.getString(ctx, "translationKey")))
+                    )
+                )
+
                 // /npc setcolor <entity> <colorName> [target: bg|title|border|titletext]
                 // Color names: black, dark_blue, dark_green, dark_aqua, dark_red, dark_purple,
                 //              gold, gray, dark_gray, blue, green, aqua, red, light_purple,
@@ -449,6 +506,14 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setTitleKey(CommandContext<ServerCommandSource> ctx, Entity entity, String translationKey) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setDialogTitleKey(translationKey);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aTitle translation key set to: §e" + translationKey), false);
+        return 1;
+    }
+
     private static int setText(CommandContext<ServerCommandSource> ctx, Entity entity, String text) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -457,8 +522,16 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setTextKey(CommandContext<ServerCommandSource> ctx, Entity entity, String translationKey) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setDialogTextKey(translationKey);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aDialog text translation key set to: §e" + translationKey), false);
+        return 1;
+    }
+
     private static int addOption(CommandContext<ServerCommandSource> ctx, Entity entity,
-                                  String label, String command, String sound, String particle, int particleCount) {
+                                  String label, String command, String sound, String particle, int particleCount, String translationKey) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
 
@@ -476,9 +549,9 @@ public class DialogCommand {
             return 0;
         }
 
-        npc.addDialogOption(new DialogNpcEntity.DialogOption(label, command, validSound, validParticle, particleCount));
+        npc.addDialogOption(new DialogNpcEntity.DialogOption(label, command, validSound, validParticle, particleCount, translationKey));
         int idx = npc.getDialogOptions().size() - 1;
-        String feedback = buildOptionFeedback(idx, label, command, validSound, validParticle, particleCount);
+        String feedback = buildOptionFeedback(idx, label, command, validSound, validParticle, particleCount, translationKey);
         ctx.getSource().sendFeedback(() -> Text.literal(feedback), false);
         return 1;
     }
@@ -496,10 +569,11 @@ public class DialogCommand {
     }
 
     private static String buildOptionFeedback(int idx, String label, String command,
-                                               String sound, String particle, int particleCount) {
+                                               String sound, String particle, int particleCount, String translationKey) {
         StringBuilder sb = new StringBuilder("§aOption added at index §e" + idx + "§a: §f[" + label + "] §7→ " + command);
         if (sound != null && !sound.isEmpty()) sb.append(" §7| Sound: §e").append(sound);
         if (particle != null && !particle.isEmpty()) sb.append(" §7| Particles: §e").append(particle).append(" §7(§e").append(particleCount).append("§7)");
+        if (translationKey != null && !translationKey.isEmpty()) sb.append(" §7| Translation Key: §e").append(translationKey);
         return sb.toString();
     }
 
@@ -513,6 +587,20 @@ public class DialogCommand {
         }
         opts.remove(index);
         ctx.getSource().sendFeedback(() -> Text.literal("§aOption " + index + " removed."), false);
+        return 1;
+    }
+
+    private static int setOptionKey(CommandContext<ServerCommandSource> ctx, Entity entity, int index, String translationKey) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        List<DialogNpcEntity.DialogOption> opts = npc.getDialogOptions();
+        if (index < 0 || index >= opts.size()) {
+            ctx.getSource().sendError(Text.literal("Index " + index + " out of range (0-" + (opts.size() - 1) + ")."));
+            return 0;
+        }
+        DialogNpcEntity.DialogOption old = opts.get(index);
+        opts.set(index, new DialogNpcEntity.DialogOption(old.label(), old.command(), old.soundId(), old.particleType(), old.particleCount(), translationKey));
+        ctx.getSource().sendFeedback(() -> Text.literal("§aOption " + index + " translation key set to: §e" + translationKey), false);
         return 1;
     }
 
@@ -725,6 +813,14 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setNpcNameKey(CommandContext<ServerCommandSource> ctx, Entity entity, String translationKey) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setNpcNameKey(translationKey);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aNPC name translation key set to: §e" + translationKey), false);
+        return 1;
+    }
+
     private static int setColor(CommandContext<ServerCommandSource> ctx, Entity entity, String colorName, String colorTarget) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -770,8 +866,11 @@ public class DialogCommand {
         sb.append("§6=== Dialog NPC Info ===\n");
         sb.append("§7UUID:          §f").append(npc.getUuidAsString()).append("\n");
         sb.append("§7Title:         §e").append(npc.getDialogTitle()).append("\n");
+        sb.append("§7Title Key:     §e").append(npc.getDialogTitleKey().isEmpty() ? "(none)" : npc.getDialogTitleKey()).append("\n");
         sb.append("§7Text:          §f").append(npc.getDialogText()).append("\n");
+        sb.append("§7Text Key:      §f").append(npc.getDialogTextKey().isEmpty() ? "(none)" : npc.getDialogTextKey()).append("\n");
         sb.append("§7Name:          §e").append(npc.getCustomName() != null ? npc.getCustomName().getString() : "(none)").append("\n");
+        sb.append("§7Name Key:      §e").append(npc.getNpcNameKey().isEmpty() ? "(none)" : npc.getNpcNameKey()).append("\n");
         sb.append("§7Texture:       §f").append(npc.getNpcTexture()).append("\n");
         sb.append(String.format("§7BG Color:      §f0x%08X\n", npc.getBackgroundColor()));
         sb.append(String.format("§7Title Bar:     §f0x%08X\n", npc.getTitleColor()));
@@ -801,7 +900,11 @@ public class DialogCommand {
         for (int i = 0; i < npc.getDialogOptions().size(); i++) {
             DialogNpcEntity.DialogOption opt = npc.getDialogOptions().get(i);
             sb.append("  §e").append(i).append("§7: §f[").append(opt.label())
-              .append("] §7→ ").append(opt.command()).append("\n");
+              .append("] §7→ ").append(opt.command());
+            if (opt.labelTranslationKey() != null && !opt.labelTranslationKey().isEmpty()) {
+                sb.append(" §7| Key: §e").append(opt.labelTranslationKey());
+            }
+            sb.append("\n");
         }
 
         String info = sb.toString();

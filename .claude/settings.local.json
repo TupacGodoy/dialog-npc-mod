@@ -22,7 +22,8 @@
       "Bash(cp \"C:\\\\Users\\\\zhili\\\\Documents\\\\dialog-npc-mod\\\\build\\\\libs\\\\dialog-npc-*.jar\" \"C:\\\\Users\\\\zhili\\\\AppData\\\\Roaming\\\\ModrinthApp\\\\profiles\\\\COBBLEMANIA 1.0 \\(1\\)\\\\mods\\\\\")",
       "Bash(cp build/libs/dialognpc-*.jar 'C:/Users/zhili/AppData/Roaming/ModrinthApp/profiles/COBBLEMANIA 1.0 \\(1\\)/mods/')",
       "Read(//c/Users/zhili/AppData/Roaming/ModrinthApp/profiles/COBBLEMANIA 1.0 \\(1\\)/mods/**)",
-      "Bash(scp:*)"
+      "Bash(scp:*)",
+      "Bash(ls -la build/libs/*.jar)"
     ]
   }
 }

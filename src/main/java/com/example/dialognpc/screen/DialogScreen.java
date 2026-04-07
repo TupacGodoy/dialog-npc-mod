@@ -31,9 +31,13 @@ public class DialogScreen extends Screen {
     // ── Data ──────────────────────────────────────────────────────────────
     private final UUID         npcUuid;
     private final String       dialogTitle;
+    private final String       dialogTitleKey;
     private final String       dialogText;
+    private final String       dialogTextKey;
     private final String       npcName;
+    private final String       npcNameKey;
     private final List<String> optionLabels;
+    private final List<String> optionLabelKeys;
     private final List<String> optionSounds;
     private final List<String> optionParticles;
     private final List<Integer> optionParticleCounts;
@@ -60,9 +64,11 @@ public class DialogScreen extends Screen {
     private int buttonBoxX;
     private int buttonBoxY;
 
-    public DialogScreen(UUID npcUuid, String dialogTitle, String dialogText,
+    public DialogScreen(UUID npcUuid, String dialogTitle, String dialogTitleKey,
+                        String dialogText, String dialogTextKey,
                         String npcTexture, String textureType, String customTextureData,
-                        String npcName, List<String> optionLabels,
+                        String npcName, String npcNameKey,
+                        List<String> optionLabels, List<String> optionLabelKeys,
                         List<String> optionSounds, List<String> optionParticles, List<Integer> optionParticleCounts,
                         int backgroundColor, int titleColor, int buttonWidth,
                         int borderColor, int titleTextColor, int optionsHeight,
@@ -71,9 +77,13 @@ public class DialogScreen extends Screen {
         super(Text.literal(dialogTitle));
         this.npcUuid               = npcUuid;
         this.dialogTitle           = dialogTitle;
+        this.dialogTitleKey        = dialogTitleKey != null ? dialogTitleKey : "";
         this.dialogText            = dialogText;
+        this.dialogTextKey         = dialogTextKey != null ? dialogTextKey : "";
         this.npcName               = npcName != null ? npcName : "";
+        this.npcNameKey            = npcNameKey != null ? npcNameKey : "";
         this.optionLabels          = optionLabels;
+        this.optionLabelKeys       = optionLabelKeys;
         this.optionSounds          = optionSounds;
         this.optionParticles       = optionParticles;
         this.optionParticleCounts  = optionParticleCounts;
@@ -119,9 +129,12 @@ public class DialogScreen extends Screen {
             final String soundId = optionSounds.size() > idx ? optionSounds.get(idx) : null;
             final String particleType = optionParticles.size() > idx ? optionParticles.get(idx) : null;
             final int particleCount = optionParticleCounts.size() > idx ? optionParticleCounts.get(idx) : 0;
+            final String labelKey = optionLabelKeys.size() > idx ? optionLabelKeys.get(i) : "";
+
+            Text buttonText = !labelKey.isEmpty() ? Text.translatable(labelKey) : Text.literal(optionLabels.get(i));
 
             this.addDrawableChild(
-                ButtonWidget.builder(Text.literal(optionLabels.get(i)), btn -> {
+                ButtonWidget.builder(buttonText, btn -> {
                     playOptionSound(soundId);
                     spawnOptionParticles(particleType, particleCount);
                     ModPackets.sendRunOption(npcUuid, idx);
@@ -182,16 +195,18 @@ public class DialogScreen extends Screen {
     private void drawDialogForeground(DrawContext ctx, int boxX, int boxTop) {
         int cx = this.width / 2;
 
-        // Draw NPC name above head (if set)
+        // Draw NPC name above head (if set) - use translation key if available
         int nameY = boxTop + titleHeight + boxPadding - 12;
         if (!npcName.isEmpty()) {
-            int nameWidth = this.textRenderer.getWidth(npcName);
+            Text nameText = !npcNameKey.isEmpty() ? Text.translatable(npcNameKey) : Text.literal(npcName);
+            int nameWidth = this.textRenderer.getWidth(nameText);
             int px = boxX + boxPadding;
-            ctx.drawText(this.textRenderer, npcName, px + (portraitSize - nameWidth) / 2, nameY, MinecraftColors.GOLD, true);
+            ctx.drawText(this.textRenderer, nameText, px + (portraitSize - nameWidth) / 2, nameY, MinecraftColors.GOLD, true);
         }
 
-        // Title text - centered with shadow
-        ctx.drawCenteredTextWithShadow(this.textRenderer, dialogTitle,
+        // Title text - centered with shadow (use translation if available)
+        Text titleText = !dialogTitleKey.isEmpty() ? Text.translatable(dialogTitleKey) : Text.literal(dialogTitle);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, titleText,
             cx, boxTop + (titleHeight - 8) / 2, titleTextColor);
 
         // Portrait background
@@ -210,8 +225,9 @@ public class DialogScreen extends Screen {
         int ty   = py + 1;
         int maxW = boxWidth - portraitSize - boxPadding * 3;
 
-        // Wrap and draw text line by line
-        List<OrderedText> lines = this.textRenderer.wrapLines(Text.literal(dialogText), maxW);
+        // Wrap and draw text line by line (use translation if available)
+        Text textContent = !dialogTextKey.isEmpty() ? Text.translatable(dialogTextKey) : Text.literal(dialogText);
+        List<OrderedText> lines = this.textRenderer.wrapLines(textContent, maxW);
         for (OrderedText line : lines) {
             ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, true);
             ty += this.textRenderer.fontHeight + 1;

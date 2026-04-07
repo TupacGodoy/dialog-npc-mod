@@ -27,14 +27,18 @@ import com.example.dialognpc.util.MinecraftColors;
 
 public class DialogNpcEntity extends PathAwareEntity {
 
-    public record DialogOption(String label, String command, String soundId, String particleType, int particleCount) {}
+    public record DialogOption(String label, String command, String soundId, String particleType, int particleCount, String labelTranslationKey) {}
 
     // TrackedData for client-side synchronization
     private static final TrackedData<String> TEXTURE_TYPE = DataTracker.registerData(DialogNpcEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<String> CUSTOM_TEXTURE_DATA = DataTracker.registerData(DialogNpcEntity.class, TrackedDataHandlerRegistry.STRING);
 
+    // Dialog content (literal text or translation keys)
     private String dialogTitle = "NPC";
+    private String dialogTitleKey = "";  // Translation key for title (empty = use literal)
     private String dialogText  = "Hello! How can I help you?";
+    private String dialogTextKey = "";   // Translation key for text (empty = use literal)
+    private String npcNameKey = "";      // Translation key for NPC name (empty = use literal)
     private String npcTexture  = "minecraft:textures/entity/player/wide/steve.png";
     private final List<DialogOption> options = new ArrayList<>();
 
@@ -116,7 +120,10 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putString("DialogTitle", dialogTitle);
+        nbt.putString("DialogTitleKey", dialogTitleKey);
         nbt.putString("DialogText",  dialogText);
+        nbt.putString("DialogTextKey", dialogTextKey);
+        nbt.putString("NpcNameKey", npcNameKey);
         nbt.putString("NpcTexture",  npcTexture);
         nbt.putInt("BackgroundColor", backgroundColor);
         nbt.putInt("TitleColor", titleColor);
@@ -147,6 +154,7 @@ public class DialogNpcEntity extends PathAwareEntity {
             c.putString("SoundId", opt.soundId() != null ? opt.soundId() : "");
             c.putString("ParticleType", opt.particleType() != null ? opt.particleType() : "");
             c.putInt("ParticleCount", opt.particleCount());
+            c.putString("LabelTranslationKey", opt.labelTranslationKey() != null ? opt.labelTranslationKey() : "");
             list.add(c);
         }
         nbt.put("DialogOptions", list);
@@ -156,7 +164,10 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
         if (nbt.contains("DialogTitle")) dialogTitle = nbt.getString("DialogTitle");
+        if (nbt.contains("DialogTitleKey")) dialogTitleKey = nbt.getString("DialogTitleKey");
         if (nbt.contains("DialogText"))  dialogText  = nbt.getString("DialogText");
+        if (nbt.contains("DialogTextKey")) dialogTextKey = nbt.getString("DialogTextKey");
+        if (nbt.contains("NpcNameKey"))  npcNameKey  = nbt.getString("NpcNameKey");
         if (nbt.contains("NpcTexture"))  npcTexture  = nbt.getString("NpcTexture");
         if (nbt.contains("BackgroundColor")) backgroundColor = nbt.getInt("BackgroundColor");
         if (nbt.contains("TitleColor"))    titleColor    = nbt.getInt("TitleColor");
@@ -192,7 +203,8 @@ public class DialogNpcEntity extends PathAwareEntity {
                 String soundId = c.contains("SoundId") && !c.getString("SoundId").isEmpty() ? c.getString("SoundId") : null;
                 String particleType = c.contains("ParticleType") && !c.getString("ParticleType").isEmpty() ? c.getString("ParticleType") : null;
                 int particleCount = c.contains("ParticleCount") ? c.getInt("ParticleCount") : 0;
-                options.add(new DialogOption(c.getString("Label"), c.getString("Command"), soundId, particleType, particleCount));
+                String labelTranslationKey = c.contains("LabelTranslationKey") ? c.getString("LabelTranslationKey") : null;
+                options.add(new DialogOption(c.getString("Label"), c.getString("Command"), soundId, particleType, particleCount, labelTranslationKey));
             }
         }
     }
@@ -201,8 +213,14 @@ public class DialogNpcEntity extends PathAwareEntity {
 
     public String getDialogTitle()             { return dialogTitle; }
     public void   setDialogTitle(String t)     { this.dialogTitle = t; }
+    public String getDialogTitleKey()          { return dialogTitleKey; }
+    public void   setDialogTitleKey(String k)  { this.dialogTitleKey = k; }
+    public String getNpcNameKey()              { return npcNameKey; }
+    public void   setNpcNameKey(String k)      { this.npcNameKey = k; }
     public String getDialogText()              { return dialogText; }
     public void   setDialogText(String t)      { this.dialogText = t; }
+    public String getDialogTextKey()           { return dialogTextKey; }
+    public void   setDialogTextKey(String k)   { this.dialogTextKey = k; }
     public String getNpcTexture()              { return npcTexture; }
     public void   setNpcTexture(String tex)    { this.npcTexture = tex; }
     public List<DialogOption> getDialogOptions()  { return options; }
