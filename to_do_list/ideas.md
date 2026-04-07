@@ -53,3 +53,4 @@
 - [x] Comandos basicos para moderadores
 - [x] Persistencia via NBT
 - [x] Seguridad server-side para comandos
+- [x] Rediseño UI: NPC fuera del recuadro, globo de texto con cola, nombre arriba, opciones abajo separadas
