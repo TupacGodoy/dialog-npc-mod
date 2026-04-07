@@ -65,9 +65,8 @@ public class DialogNpcEntity extends PathAwareEntity {
     private boolean bodyRotation = false;  // Body rotates to face players
     private boolean canMove = false;       // Can move from spawn position
     private boolean canRotate = false;     // Can rotate (yaw/pitch changes)
-    private boolean showHitbox = true;     // Show/hide hitbox
-    private boolean noClip = false;        // No collision (can walk through)
-    private boolean hasHitbox = true;      // Has collision box (can be traspasado)
+    private boolean showHitbox = true;     // Show/hide hitbox (visual)
+    private boolean hasHitbox = true;      // Has collision box (false = traspasable)
 
     public DialogNpcEntity(EntityType<? extends DialogNpcEntity> type, World world) {
         super(type, world);
