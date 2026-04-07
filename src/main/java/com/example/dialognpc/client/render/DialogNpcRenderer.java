@@ -38,10 +38,10 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
 
         switch (textureType) {
             case "player":
-                // Player skin by username
+                // Player skin by username - fetch from Mojang servers
                 String playerName = entity.getCustomTextureData();
                 if (playerName != null && !playerName.isEmpty()) {
-                    return Identifier.of("minecraft", "textures/entity/player/skin/" + playerName + ".png");
+                    return loadPlayerSkin(playerName);
                 }
                 return FALLBACK;
 
@@ -68,6 +68,58 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
                 Identifier id = Identifier.tryParse(npcTexture);
                 return id != null ? id : FALLBACK;
         }
+    }
+
+    private Identifier loadPlayerSkin(String playerName) {
+        String cacheKey = "player_" + playerName.toLowerCase();
+        return DYNAMIC_TEXTURES.computeIfAbsent(cacheKey, key -> {
+            try {
+                // Fetch skin URL from Mojang via playerdb.co (free API, no auth required)
+                String apiUrl = "https://playerdb.co/api/player/minecraft/" + playerName;
+                java.net.URI uri = java.net.URI.create(apiUrl);
+                java.io.InputStream stream = uri.toURL().openStream();
+                String json = new String(stream.readAllBytes());
+                stream.close();
+
+                // Parse JSON to find skin URL
+                String skinUrl = extractSkinUrl(json);
+                if (skinUrl != null && !skinUrl.isEmpty()) {
+                    java.net.URI skinUri = java.net.URI.create(skinUrl);
+                    java.io.InputStream skinStream = skinUri.toURL().openStream();
+                    NativeImage image = NativeImage.read(skinStream);
+                    skinStream.close();
+
+                    Identifier textureId = Identifier.of("dialognpc", "player_" + playerName.toLowerCase());
+                    registerTexture(textureId, image);
+                    LOGGER.info("Loaded player skin for: {}", playerName);
+                    return textureId;
+                }
+                LOGGER.warn("Could not find skin URL for player: {}", playerName);
+                return FALLBACK;
+            } catch (Exception e) {
+                LOGGER.error("Failed to load player skin for: {}", playerName, e);
+                return FALLBACK;
+            }
+        });
+    }
+
+    private String extractSkinUrl(String json) {
+        // Simple JSON parsing without external library
+        // Look for "raw" field containing the skin URL
+        int rawIndex = json.indexOf("\"raw\"");
+        if (rawIndex == -1) return null;
+
+        int colonIndex = json.indexOf(":", rawIndex);
+        if (colonIndex == -1) return null;
+
+        int quoteStart = json.indexOf("\"", colonIndex);
+        if (quoteStart == -1) return null;
+
+        int quoteEnd = json.indexOf("\"", quoteStart + 1);
+        if (quoteEnd == -1) return null;
+
+        String url = json.substring(quoteStart + 1, quoteEnd);
+        return url.startsWith("http") ? url : null;
     }
 
     private Identifier loadTextureFromUrl(String url) {
