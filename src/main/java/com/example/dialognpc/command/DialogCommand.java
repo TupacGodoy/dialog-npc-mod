@@ -462,33 +462,45 @@ public class DialogCommand {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
 
-        // Validate sound if provided
-        String validSound = sound;
-        if (sound != null && !sound.isEmpty()) {
-            var soundId = net.minecraft.util.Identifier.tryParse(sound);
-            if (soundId == null || net.minecraft.registry.Registries.SOUND_EVENT.get(soundId) == null) {
-                ctx.getSource().sendError(Text.literal("§cInvalid sound ID: §7" + sound));
-                return 0;
-            }
+        // Validate sound
+        String validSound = validateSound(sound);
+        if (sound != null && !sound.isEmpty() && validSound == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid sound ID: §7" + sound));
+            return 0;
         }
 
-        // Validate particle if provided
-        String validParticle = particle;
-        if (particle != null && !particle.isEmpty()) {
-            var particleId = net.minecraft.util.Identifier.tryParse(particle);
-            if (particleId == null || net.minecraft.registry.Registries.PARTICLE_TYPE.get(particleId) == null) {
-                ctx.getSource().sendError(Text.literal("§cInvalid particle type: §7" + particle));
-                return 0;
-            }
+        // Validate particle
+        String validParticle = validateParticle(particle);
+        if (particle != null && !particle.isEmpty() && validParticle == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid particle type: §7" + particle));
+            return 0;
         }
 
         npc.addDialogOption(new DialogNpcEntity.DialogOption(label, command, validSound, validParticle, particleCount));
         int idx = npc.getDialogOptions().size() - 1;
-        StringBuilder feedback = new StringBuilder("§aOption added at index §e" + idx + "§a: §f[" + label + "] §7→ " + command);
-        if (validSound != null && !validSound.isEmpty()) feedback.append(" §7| Sound: §e").append(validSound);
-        if (validParticle != null && !validParticle.isEmpty()) feedback.append(" §7| Particles: §e").append(validParticle).append(" §7(§e").append(particleCount).append("§7)");
-        ctx.getSource().sendFeedback(() -> Text.literal(feedback.toString()), false);
+        String feedback = buildOptionFeedback(idx, label, command, validSound, validParticle, particleCount);
+        ctx.getSource().sendFeedback(() -> Text.literal(feedback), false);
         return 1;
+    }
+
+    private static String validateSound(String sound) {
+        if (sound == null || sound.isEmpty()) return null;
+        var id = net.minecraft.util.Identifier.tryParse(sound);
+        return (id != null && net.minecraft.registry.Registries.SOUND_EVENT.get(id) != null) ? sound : null;
+    }
+
+    private static String validateParticle(String particle) {
+        if (particle == null || particle.isEmpty()) return null;
+        var id = net.minecraft.util.Identifier.tryParse(particle);
+        return (id != null && net.minecraft.registry.Registries.PARTICLE_TYPE.get(id) != null) ? particle : null;
+    }
+
+    private static String buildOptionFeedback(int idx, String label, String command,
+                                               String sound, String particle, int particleCount) {
+        StringBuilder sb = new StringBuilder("§aOption added at index §e" + idx + "§a: §f[" + label + "] §7→ " + command);
+        if (sound != null && !sound.isEmpty()) sb.append(" §7| Sound: §e").append(sound);
+        if (particle != null && !particle.isEmpty()) sb.append(" §7| Particles: §e").append(particle).append(" §7(§e").append(particleCount).append("§7)");
+        return sb.toString();
     }
 
     private static int removeOption(CommandContext<ServerCommandSource> ctx, Entity entity, int index) {

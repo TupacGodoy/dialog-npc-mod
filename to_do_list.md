@@ -13,3 +13,11 @@
 - [x] Comando addoption mejorado con sonido y partículas
 
 ## Pendiente
+
+## Optimizaciones Realizadas (2026-04-07)
+- [x] Crear clase utilitaria `TextureLoader` para cargar texturas de forma centralizada
+- [x] Eliminar logging excesivo en `DialogNpcRenderer` (System.out.println → LOGGER)
+- [x] Consolidar lógica duplicada de carga de texturas entre `DialogScreen` y `DialogNpcRenderer`
+- [x] Simplificar validación de sonidos y partículas en `DialogCommand` con métodos helper
+- [x] Eliminar variables innecesarias en `DialogScreen`
+- [x] Reducir código boilerplate en `DialogNpcRenderer` (de ~230 líneas a ~40)
