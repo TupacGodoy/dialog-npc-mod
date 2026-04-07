@@ -17,17 +17,21 @@ import java.util.UUID;
 public class DialogScreen extends Screen {
 
     // ── Layout ───────────────────────────────────────────────────────────
-    private static final int BOX_WIDTH    = 240;
-    private static final int BOX_PADDING  = 10;
-    private static final int TITLE_HEIGHT = 20;
-    private static final int PORTRAIT_SZ  = 36;
-    private static final int BTN_HEIGHT   = 20;
-    private static final int BTN_GAP      = 4;
-    private static final int TEXT_BOX_H   = 70;
+    private static final int DEFAULT_BOX_WIDTH   = 280;
+    private static final int BOX_PADDING         = 10;
+    private static final int TITLE_HEIGHT        = 24;
+    private static final int PORTRAIT_SZ         = 40;
+    private static final int BTN_HEIGHT          = 20;
+    private static final int BTN_GAP             = 4;
+    private static final int TEXT_BOX_H          = 90;
+    private static final int DEFAULT_BTN_WIDTH   = 180;
 
-    // ── Colors ───────────────────────────────────────────────────────────
-    private static final int COLOR_TITLE_TXT = 0xFFFFD966;
-    private static final int COLOR_TEXT      = 0xFFFFFFFF;
+    // ── Default Colors ───────────────────────────────────────────────────
+    private static final int DEFAULT_BG_COLOR    = 0xFF1A1A2E;
+    private static final int DEFAULT_TITLE_COLOR = 0xFF2D2D5A;
+    private static final int DEFAULT_BORDER_COLOR = 0xFF404080;
+    private static final int COLOR_TITLE_TXT     = 0xFFFFD966;
+    private static final int COLOR_TEXT          = 0xFFFFFFFF;
 
     // ── Data ─────────────────────────────────────────────────────────────
     private final UUID         npcUuid;
@@ -35,15 +39,26 @@ public class DialogScreen extends Screen {
     private final String       dialogText;
     private final Identifier   npcTexture;
     private final List<String> optionLabels;
+    private final int          backgroundColor;
+    private final int          titleColor;
+    private final int          buttonWidth;
+
+    // Button positions
+    private int buttonBoxX;
+    private int buttonBoxY;
 
     public DialogScreen(UUID npcUuid, String dialogTitle, String dialogText,
-                        String npcTexture, List<String> optionLabels) {
+                        String npcTexture, List<String> optionLabels,
+                        int backgroundColor, int titleColor, int buttonWidth) {
         super(Text.literal(dialogTitle));
-        this.npcUuid      = npcUuid;
-        this.dialogTitle  = dialogTitle;
-        this.dialogText   = dialogText;
-        this.npcTexture   = parseTexture(npcTexture);
-        this.optionLabels = optionLabels;
+        this.npcUuid         = npcUuid;
+        this.dialogTitle     = dialogTitle;
+        this.dialogText      = dialogText;
+        this.npcTexture      = parseTexture(npcTexture);
+        this.optionLabels    = optionLabels;
+        this.backgroundColor = backgroundColor;
+        this.titleColor      = titleColor;
+        this.buttonWidth     = buttonWidth;
     }
 
     private static Identifier parseTexture(String tex) {
@@ -53,9 +68,16 @@ public class DialogScreen extends Screen {
 
     @Override
     protected void init() {
-        int boxX   = this.width  / 2 - BOX_WIDTH / 2;
+        int boxX   = this.width  / 2 - DEFAULT_BOX_WIDTH / 2;
         int boxTop = calcBoxTop();
-        int btnY   = boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 4;
+
+        // Store box position for custom rendering
+        buttonBoxX = boxX;
+        buttonBoxY = boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 4;
+
+        // Center buttons within the box - use DEFAULT_BTN_WIDTH if buttonWidth not set
+        int effectiveBtnWidth = buttonWidth > 0 ? buttonWidth : DEFAULT_BTN_WIDTH;
+        int btnOffset = (DEFAULT_BOX_WIDTH - effectiveBtnWidth) / 2;
 
         for (int i = 0; i < optionLabels.size(); i++) {
             final int idx = i;
@@ -64,48 +86,61 @@ public class DialogScreen extends Screen {
                     ModPackets.sendRunOption(npcUuid, idx);
                     this.close();
                 })
-                .dimensions(boxX, btnY + i * (BTN_HEIGHT + BTN_GAP), BOX_WIDTH, BTN_HEIGHT)
+                .dimensions(buttonBoxX + btnOffset, buttonBoxY + i * (BTN_HEIGHT + BTN_GAP), effectiveBtnWidth, BTN_HEIGHT)
                 .build()
             );
         }
 
-        int closeBtnY = btnY + optionLabels.size() * (BTN_HEIGHT + BTN_GAP);
+        int closeBtnY = buttonBoxY + optionLabels.size() * (BTN_HEIGHT + BTN_GAP);
         this.addDrawableChild(
             ButtonWidget.builder(Text.translatable("dialognpc.dialog.close"), btn -> this.close())
-                .dimensions(boxX, closeBtnY, BOX_WIDTH, BTN_HEIGHT)
+                .dimensions(buttonBoxX + btnOffset, closeBtnY, effectiveBtnWidth, BTN_HEIGHT)
                 .build()
         );
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // Render semi-transparent dark overlay (no blur)
-        ctx.fill(0, 0, this.width, this.height, 0x66000000);
-
-        // Draw dialog box
-        drawDialog(ctx);
-
-        // Render buttons and other widgets
-        super.render(ctx, mouseX, mouseY, delta);
-    }
-
-    private void drawDialog(DrawContext ctx) {
-        int cx     = this.width  / 2;
-        int boxX   = cx - BOX_WIDTH / 2;
+        int boxX   = buttonBoxX;
         int boxTop = calcBoxTop();
 
-        // Draw background rectangle using Minecraft's panel texture style
-        // Dark background
-        ctx.fill(boxX, boxTop, boxX + BOX_WIDTH, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2, 0xDD101010);
+        // Calculate full modal height - from top to bottom of last button
+        int buttonsH = (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP);
+        int fullHeight = (buttonBoxY - boxTop) + buttonsH;
 
-        // Border - brighter outline
-        ctx.fill(boxX - 1, boxTop - 1, boxX + BOX_WIDTH + 1, boxTop, 0xFF404080);
-        ctx.fill(boxX - 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2, boxX + BOX_WIDTH + 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
-        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
-        ctx.fill(boxX + BOX_WIDTH, boxTop - 1, boxX + BOX_WIDTH + 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
+        // 1. Draw solid background for ENTIRE modal (text + buttons area) - opaque
+        ctx.fill(boxX, boxTop, boxX + DEFAULT_BOX_WIDTH, boxTop + fullHeight, backgroundColor);
 
-        // Title bar background
-        ctx.fill(boxX, boxTop, boxX + BOX_WIDTH, boxTop + TITLE_HEIGHT, 0xFF3D3D7A);
+        // 2. Draw border around entire modal
+        drawModalBorder(ctx, boxX, boxTop, fullHeight);
+
+        // 3. Draw title bar with custom color
+        ctx.fill(boxX, boxTop, boxX + DEFAULT_BOX_WIDTH, boxTop + TITLE_HEIGHT, titleColor);
+
+        // 4. Draw separator line below text area (at top of button area)
+        ctx.fill(boxX, buttonBoxY - 1, boxX + DEFAULT_BOX_WIDTH, buttonBoxY, DEFAULT_BORDER_COLOR);
+
+        // 5. Draw title, portrait and dialog text
+        drawDialogForeground(ctx, boxX, boxTop);
+
+        // 6. Render buttons on top (without screen background blur)
+        for (var child : this.children()) {
+            if (child instanceof net.minecraft.client.gui.Drawable drawable) {
+                drawable.render(ctx, mouseX, mouseY, delta);
+            }
+        }
+    }
+
+    private void drawModalBorder(DrawContext ctx, int boxX, int boxTop, int fullHeight) {
+        // Border - brighter outline (1 pixel on each side)
+        ctx.fill(boxX - 1, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop, 0xFF404080);
+        ctx.fill(boxX - 1, boxTop + fullHeight, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, 0xFF404080);
+        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + fullHeight + 1, 0xFF404080);
+        ctx.fill(boxX + DEFAULT_BOX_WIDTH, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, 0xFF404080);
+    }
+
+    private void drawDialogForeground(DrawContext ctx, int boxX, int boxTop) {
+        int cx = this.width / 2;
 
         // Title text - centered with shadow
         ctx.drawCenteredTextWithShadow(this.textRenderer, dialogTitle,
@@ -125,7 +160,7 @@ public class DialogScreen extends Screen {
         // Dialog text area - to the right of portrait
         int tx   = px + PORTRAIT_SZ + BOX_PADDING;
         int ty   = py + 1;
-        int maxW = BOX_WIDTH - PORTRAIT_SZ - BOX_PADDING * 3;
+        int maxW = DEFAULT_BOX_WIDTH - PORTRAIT_SZ - BOX_PADDING * 3;
 
         // Wrap and draw text line by line
         List<OrderedText> lines = this.textRenderer.wrapLines(Text.literal(dialogText), maxW);
