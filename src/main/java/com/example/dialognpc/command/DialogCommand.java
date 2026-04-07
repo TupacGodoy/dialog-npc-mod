@@ -99,13 +99,13 @@ public class DialogCommand {
                 .then(CommandManager.literal("addoption")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
                         .then(CommandManager.argument("label", StringArgumentType.string())
-                            .then(CommandManager.argument("command", StringArgumentType.string())
+                            .then(CommandManager.argument("command", StringArgumentType.greedyString())
                                 .executes(ctx -> addOption(ctx,
                                     EntityArgumentType.getEntity(ctx, "target"),
                                     StringArgumentType.getString(ctx, "label"),
                                     StringArgumentType.getString(ctx, "command"),
                                     null, null, 0, null))
-                                .then(CommandManager.argument("sound", StringArgumentType.string())
+                                .then(CommandManager.argument("sound", StringArgumentType.greedyString())
                                     .suggests((ctx, builder) -> {
                                         net.minecraft.registry.Registries.SOUND_EVENT.getEntrySet().forEach(entry -> {
                                             builder.suggest(entry.getKey().getValue().toString());
@@ -118,7 +118,7 @@ public class DialogCommand {
                                         StringArgumentType.getString(ctx, "command"),
                                         StringArgumentType.getString(ctx, "sound"),
                                         null, 0, null))
-                                    .then(CommandManager.argument("particle", StringArgumentType.string())
+                                    .then(CommandManager.argument("particle", StringArgumentType.greedyString())
                                         .suggests((ctx, builder) -> {
                                             net.minecraft.registry.Registries.PARTICLE_TYPE.getEntrySet().forEach(entry -> {
                                                 builder.suggest(entry.getKey().getValue().toString());
@@ -292,6 +292,25 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc setoptiontextcolor <entity> <color>
+                // Color: color name (red, blue, green, etc.) or hex value (0xAARRGGBB)
+                .then(CommandManager.literal("setoptiontextcolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("color", StringArgumentType.string())
+                            .suggests((ctx, builder) -> {
+                                for (String colorName : com.example.dialognpc.util.MinecraftColors.getColorNames()) {
+                                    builder.suggest(colorName);
+                                }
+                                builder.suggest("0xFF");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> setOptionTextColorFromString(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "color")))
+                        )
+                    )
+                )
+
                 // /npc setoptionsheight <entity> <height>
                 .then(CommandManager.literal("setoptionsheight")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -414,6 +433,18 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc sethasHitbox <entity> <true|false>
+                // Controls collision - if false, players can walk through the NPC
+                .then(CommandManager.literal("sethasHitbox")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("enabled", StringArgumentType.word())
+                            .executes(ctx -> setHasHitbox(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "enabled")))
+                        )
+                    )
+                )
+
                 // /npc settexturetype <entity> <vanilla|player|url|base64>
                 .then(CommandManager.literal("settexturetype")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -463,11 +494,12 @@ public class DialogCommand {
                     )
                 )
 
-                // /npc setcolor <entity> <colorName> [target: bg|title|border|titletext]
+                // /npc setcolor <entity> <colorName> [target: bg|title|border|titletext|optiontext]
                 // Color names: black, dark_blue, dark_green, dark_aqua, dark_red, dark_purple,
                 //              gold, gray, dark_gray, blue, green, aqua, red, light_purple,
                 //              yellow, white
-                // Target: bg (background), title (title bar), border, titletext (title text)
+                // Target: bg (background), title (title bar), border, titletext (title text),
+                //         optiontext (option button text)
                 // Default target is bg if not specified
                 .then(CommandManager.literal("setcolor")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -745,6 +777,19 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setOptionTextColorFromString(CommandContext<ServerCommandSource> ctx, Entity entity, String colorStr) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        Integer color = parseColor(colorStr);
+        if (color == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color. Use a color name (red, blue, green, etc.) or hex value (0xAARRGGBB)"));
+            return 0;
+        }
+        npc.setOptionTextColor(color);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aOption text color set to: §e%s §7(0x%08X)", colorStr, color)), false);
+        return 1;
+    }
+
     private static int setOptionsHeight(CommandContext<ServerCommandSource> ctx, Entity entity, int height) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -838,6 +883,15 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setHasHitbox(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(enabled);
+        npc.setHasHitbox(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aCollision " + (value ? "§aenabled" : "§cdisabled (can walk through)")), false);
+        return 1;
+    }
+
     private static int setTextureType(CommandContext<ServerCommandSource> ctx, Entity entity, String type) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -908,6 +962,10 @@ public class DialogCommand {
                 npc.setTitleTextColor(color);
                 ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle text color set to: §e%s §7(0x%08X)", colorName, color)), false);
             }
+            case "optiontext", "optiontextcolor" -> {
+                npc.setOptionTextColor(color);
+                ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aOption text color set to: §e%s §7(0x%08X)", colorName, color)), false);
+            }
             default -> {
                 ctx.getSource().sendError(Text.literal("§cInvalid target. Use: bg, title, border, or titletext"));
                 return 0;
@@ -948,6 +1006,7 @@ public class DialogCommand {
         sb.append("§7Can Move:      ").append(npc.isCanMove() ? "§aYes" : "§cNo").append("\n");
         sb.append("§7Can Rotate:    ").append(npc.isCanRotate() ? "§aYes" : "§cNo").append("\n");
         sb.append("§7Show Hitbox:   ").append(npc.isShowHitbox() ? "§aYes" : "§cNo").append("\n");
+        sb.append("§7Has Hitbox:    ").append(npc.isHasHitbox() ? "§aYes" : "§cNo (traspasable)").append("\n");
         // Custom texture
         sb.append("§7Texture Type:  §e").append(npc.getTextureType()).append("\n");
         if (!npc.getCustomTextureData().isEmpty()) {

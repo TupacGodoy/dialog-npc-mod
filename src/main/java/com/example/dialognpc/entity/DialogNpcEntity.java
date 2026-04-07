@@ -10,6 +10,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -50,6 +51,7 @@ public class DialogNpcEntity extends PathAwareEntity {
     private int borderColor   = MinecraftColors.GRAY;
     private int titleTextColor = MinecraftColors.YELLOW;
     private int optionsHeight = 0; // 0 = auto
+    private int optionTextColor = MinecraftColors.WHITE; // Color for option button text
 
     // Modal layout customization
     private int boxWidth    = 280;  // Default box width
@@ -64,6 +66,8 @@ public class DialogNpcEntity extends PathAwareEntity {
     private boolean canMove = false;       // Can move from spawn position
     private boolean canRotate = false;     // Can rotate (yaw/pitch changes)
     private boolean showHitbox = true;     // Show/hide hitbox
+    private boolean noClip = false;        // No collision (can walk through)
+    private boolean hasHitbox = true;      // Has collision box (can be traspasado)
 
     public DialogNpcEntity(EntityType<? extends DialogNpcEntity> type, World world) {
         super(type, world);
@@ -107,13 +111,18 @@ public class DialogNpcEntity extends PathAwareEntity {
     public boolean isInvulnerableTo(DamageSource source) { return true; }
 
     @Override
-    public boolean isPushable() { return !canMove; }
+    public boolean isPushable() { return !canMove && hasHitbox; }
 
     @Override
     public boolean isImmobile() { return !canMove; }
 
     @Override
     public boolean isCustomNameVisible() { return showHitbox; }
+
+    @Override
+    public boolean collidesWith(Entity other) {
+        return hasHitbox && super.collidesWith(other);
+    }
 
     // ── NBT ──────────────────────────────────────────────────────────────
 
@@ -133,6 +142,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putInt("BorderColor", borderColor);
         nbt.putInt("TitleTextColor", titleTextColor);
         nbt.putInt("OptionsHeight", optionsHeight);
+        nbt.putInt("OptionTextColor", optionTextColor);
         // Modal layout
         nbt.putInt("BoxWidth", boxWidth);
         nbt.putInt("BoxHeight", boxHeight);
@@ -145,6 +155,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putBoolean("CanMove", canMove);
         nbt.putBoolean("CanRotate", canRotate);
         nbt.putBoolean("ShowHitbox", showHitbox);
+        nbt.putBoolean("HasHitbox", hasHitbox);
         // Custom texture (save from tracked data)
         nbt.putString("CustomTextureData", this.dataTracker.get(CUSTOM_TEXTURE_DATA));
         nbt.putString("TextureType", this.dataTracker.get(TEXTURE_TYPE));
@@ -178,6 +189,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("BorderColor"))   borderColor   = nbt.getInt("BorderColor");
         if (nbt.contains("TitleTextColor")) titleTextColor = nbt.getInt("TitleTextColor");
         if (nbt.contains("OptionsHeight")) optionsHeight = nbt.getInt("OptionsHeight");
+        if (nbt.contains("OptionTextColor")) optionTextColor = nbt.getInt("OptionTextColor");
         // Modal layout
         if (nbt.contains("BoxWidth"))    boxWidth    = nbt.getInt("BoxWidth");
         if (nbt.contains("BoxHeight"))   boxHeight   = nbt.getInt("BoxHeight");
@@ -190,6 +202,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("CanMove"))      canMove      = nbt.getBoolean("CanMove");
         if (nbt.contains("CanRotate"))    canRotate    = nbt.getBoolean("CanRotate");
         if (nbt.contains("ShowHitbox"))   showHitbox   = nbt.getBoolean("ShowHitbox");
+        if (nbt.contains("HasHitbox"))    hasHitbox    = nbt.getBoolean("HasHitbox");
         // Custom texture (set tracked data)
         if (nbt.contains("CustomTextureData")) this.dataTracker.set(CUSTOM_TEXTURE_DATA, nbt.getString("CustomTextureData"));
         if (nbt.contains("TextureType"))     this.dataTracker.set(TEXTURE_TYPE, nbt.getString("TextureType"));
@@ -245,6 +258,8 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setTitleTextColor(int c)     { this.titleTextColor = c; }
     public int    getOptionsHeight()           { return optionsHeight; }
     public void   setOptionsHeight(int h)      { this.optionsHeight = h; }
+    public int    getOptionTextColor()         { return optionTextColor; }
+    public void   setOptionTextColor(int c)    { this.optionTextColor = c; }
 
     // Modal layout getters/setters
     public int    getBoxWidth()                { return boxWidth; }
@@ -269,6 +284,8 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setCanRotate(boolean v)      { this.canRotate = v; }
     public boolean isShowHitbox()              { return showHitbox; }
     public void   setShowHitbox(boolean v)     { this.showHitbox = v; }
+    public boolean isHasHitbox()               { return hasHitbox; }
+    public void   setHasHitbox(boolean v)      { this.hasHitbox = v; }
 
     // Custom texture getters/setters (use tracked data for client sync)
     public String getCustomTextureData()       { return this.dataTracker.get(CUSTOM_TEXTURE_DATA); }

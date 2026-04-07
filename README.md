@@ -191,10 +191,17 @@ Uses a translation key for localized names:
 /npc setnamekey @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] dialognpc.npc.blacksmith
 ```
 
-### Show/hide hitbox
+### Show/hide hitbox (visual)
 ```
 /npc sethitbox @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
 ```
+Shows or hides the hitbox outline (visual only, doesn't affect collision).
+
+### Enable/disable collision (traspasable)
+```
+/npc sethasHitbox @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+When `false`, players can walk through the NPC (no collision). Useful for decorative NPCs or when you want them to be completely non-interactive physically.
 
 ### Show NPC info
 ```
