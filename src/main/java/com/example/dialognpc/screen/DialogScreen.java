@@ -115,14 +115,30 @@ public class DialogScreen extends Screen {
         // Store box position for custom rendering
         buttonBoxX = boxX;
 
-        // Calculate options area height (custom or auto)
-        int optionsAreaH = optionsHeight > 0 ? optionsHeight :
-            (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP) + BTN_GAP;
+        // Position button box below dialog text
         buttonBoxY = boxTop + titleHeight + TEXT_BOX_H + boxPadding * 2 + 4;
 
         // Center buttons within the box
         int effectiveBtnWidth = buttonWidth > 0 ? buttonWidth : DEFAULT_BTN_WIDTH;
         int btnOffset = (boxWidth - effectiveBtnWidth) / 2;
+
+        // Calculate button spacing based on optionsHeight
+        int totalButtons = optionLabels.size() + 1; // +1 for close button
+        int buttonsTotalHeight = totalButtons * BTN_HEIGHT;
+
+        // Determine the actual height available for buttons
+        int availableHeight;
+        if (optionsHeight > 0) {
+            // Use custom height
+            availableHeight = optionsHeight;
+        } else {
+            // Auto height: default spacing
+            availableHeight = buttonsTotalHeight + (totalButtons + 1) * BTN_GAP;
+        }
+
+        // Calculate gap between buttons to fill available height
+        int remainingSpace = availableHeight - buttonsTotalHeight;
+        int gap = Math.max(BTN_GAP, remainingSpace / (totalButtons + 1));
 
         for (int i = 0; i < optionLabels.size(); i++) {
             final int idx = i;
@@ -140,12 +156,12 @@ public class DialogScreen extends Screen {
                     ModPackets.sendRunOption(npcUuid, idx);
                     this.close();
                 })
-                .dimensions(buttonBoxX + btnOffset, buttonBoxY + i * (BTN_HEIGHT + BTN_GAP), effectiveBtnWidth, BTN_HEIGHT)
+                .dimensions(buttonBoxX + btnOffset, buttonBoxY + i * (BTN_HEIGHT + gap), effectiveBtnWidth, BTN_HEIGHT)
                 .build()
             );
         }
 
-        int closeBtnY = buttonBoxY + optionLabels.size() * (BTN_HEIGHT + BTN_GAP);
+        int closeBtnY = buttonBoxY + optionLabels.size() * (BTN_HEIGHT + gap);
         this.addDrawableChild(
             ButtonWidget.builder(Text.translatable("dialognpc.dialog.close"), btn -> this.close())
                 .dimensions(buttonBoxX + btnOffset, closeBtnY, effectiveBtnWidth, BTN_HEIGHT)
@@ -158,8 +174,14 @@ public class DialogScreen extends Screen {
         int boxX   = buttonBoxX;
         int boxTop = calcBoxTop();
 
-        // Calculate full modal height
-        int buttonsH = (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP);
+        // Calculate full modal height using optionsHeight if set
+        int totalButtons = optionLabels.size() + 1;
+        int buttonsH;
+        if (optionsHeight > 0) {
+            buttonsH = optionsHeight;
+        } else {
+            buttonsH = totalButtons * (BTN_HEIGHT + BTN_GAP);
+        }
         int fullHeight = (buttonBoxY - boxTop) + buttonsH;
 
         // 1. Draw solid background
@@ -237,7 +259,13 @@ public class DialogScreen extends Screen {
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private int calcBoxTop() {
-        int buttonsH = (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP);
+        int totalButtons = optionLabels.size() + 1;
+        int buttonsH;
+        if (optionsHeight > 0) {
+            buttonsH = optionsHeight;
+        } else {
+            buttonsH = totalButtons * (BTN_HEIGHT + BTN_GAP);
+        }
         int dialogH  = titleHeight + TEXT_BOX_H + boxPadding * 2;
         return this.height / 2 - (dialogH + buttonsH + 4) / 2;
     }
