@@ -179,6 +179,23 @@ NPC can move from spawn position and can be pushed (default: false).
 ```
 NPC can rotate (yaw/pitch changes) (default: false).
 
+### Set NPC name
+Sets the name displayed above the NPC's head:
+```
+/npc setname @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] "Blacksmith"
+```
+
+### Set NPC name with translation key
+Uses a translation key for localized names:
+```
+/npc setnamekey @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] dialognpc.npc.blacksmith
+```
+
+### Show/hide hitbox
+```
+/npc sethitbox @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+
 ### Show NPC info
 ```
 /npc info @e[type=dialognpc:dialog_npc,sort=nearest,limit=1]
