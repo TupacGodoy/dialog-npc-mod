@@ -223,8 +223,8 @@ public class DialogScreen extends Screen {
         // 4. Draw solid background for dialog box (sharp corners, no rounding)
         ctx.fill(dialogBoxX, dialogBoxY, dialogBoxX + boxWidth, dialogBoxY + dialogBoxTotalHeight, backgroundColor);
 
-        // 5. Draw border (sharp rectangular border)
-        drawSharpBorder(ctx, dialogBoxX, dialogBoxY, boxWidth, dialogBoxTotalHeight);
+        // 5. Draw border (sharp rectangular border) - draw only left, top, bottom (right side overlaps tail connection)
+        drawSharpBorderWithoutLeft(ctx, dialogBoxX, dialogBoxY, boxWidth, dialogBoxTotalHeight);
 
         // 6. Draw NPC name at top of dialog box (if NPC has a name)
         int yOffset = dialogBoxY;
@@ -233,7 +233,7 @@ public class DialogScreen extends Screen {
             yOffset += 16; // Name bar height
         }
 
-        // 7. Draw dialog text content
+        // 7. Draw dialog text content with beveled embossed effect
         drawDialogText(ctx, dialogBoxX, yOffset, boxWidth, dialogBoxTotalHeight - (yOffset - dialogBoxY));
 
         // 8. Render NPC (outside the dialog box, facing the text)
@@ -255,29 +255,22 @@ public class DialogScreen extends Screen {
     }
 
     private void drawSpeechBubbleTail(DrawContext ctx, int x, int y, int height) {
-        // Draw triangular tail pointing from dialog box to NPC (left side)
-        int tailWidth = 10;
-        int tailHeight = 15;
+        // Draw rectangular tail pointing from dialog box to NPC (left side)
+        // Shorter, thicker, and more rectangular
+        int tailWidth = 6;
+        int tailHeight = 20;
         int tailY = y + height / 2 - tailHeight / 2;
 
-        // Fill tail with background color (triangle pointing left)
-        for (int i = 0; i < tailWidth; i++) {
-            int sliceHeight = (i * tailHeight) / tailWidth;
-            int sliceY = tailY + (tailHeight - sliceHeight) / 2;
-            ctx.fill(x - tailWidth + i, sliceY, x - tailWidth + i + 1, sliceY + sliceHeight, backgroundColor);
-        }
+        // Fill tail with background color (rectangle)
+        ctx.fill(x - tailWidth, tailY, x, tailY + tailHeight, backgroundColor);
 
-        // Draw border around tail
-        for (int i = 0; i < tailWidth; i++) {
-            int sliceHeight = (i * tailHeight) / tailWidth;
-            int sliceY = tailY + (tailHeight - sliceHeight) / 2;
-            // Top border of tail
-            ctx.fill(x - tailWidth + i, sliceY - 1, x - tailWidth + i + 1, sliceY, borderColor);
-            // Bottom border of tail
-            ctx.fill(x - tailWidth + i, sliceY + sliceHeight, x - tailWidth + i + 1, sliceY + sliceHeight + 1, borderColor);
-        }
-        // Left tip border
-        ctx.fill(x - tailWidth - 1, tailY + tailHeight / 2 - 1, x - tailWidth, tailY + tailHeight / 2 + 1, borderColor);
+        // Draw border around tail (top, bottom, left sides only - right side connects to box)
+        // Top border
+        ctx.fill(x - tailWidth, tailY - 1, x, tailY, borderColor);
+        // Bottom border
+        ctx.fill(x - tailWidth, tailY + tailHeight, x, tailY + tailHeight + 1, borderColor);
+        // Left border (vertical)
+        ctx.fill(x - tailWidth - 1, tailY - 1, x - tailWidth, tailY + tailHeight + 1, borderColor);
     }
 
     private void drawSharpBorder(DrawContext ctx, int x, int y, int width, int height) {
@@ -291,14 +284,23 @@ public class DialogScreen extends Screen {
         ctx.fill(x + width, y - 1, x + width + 1, y + height + 1, borderColor);
     }
 
+    private void drawSharpBorderWithoutLeft(DrawContext ctx, int x, int y, int width, int height) {
+        // Top border
+        ctx.fill(x - 1, y - 1, x + width + 1, y, borderColor);
+        // Bottom border
+        ctx.fill(x - 1, y + height, x + width + 1, y + height + 1, borderColor);
+        // Right border only (left side connects to tail)
+        ctx.fill(x + width, y - 1, x + width + 1, y + height + 1, borderColor);
+    }
+
     private void drawNameBar(DrawContext ctx, int x, int y, int width) {
         // Draw name bar background (using titleColor)
         ctx.fill(x, y, x + width, y + 16, titleColor);
 
-        // Draw NPC name centered in the bar
+        // Draw NPC name centered in the bar with beveled embossed effect
         Text nameText = !npcNameKey.isEmpty() ? Text.translatable(npcNameKey) : Text.literal(npcName);
         int nameY = y + (16 - 8) / 2;
-        ctx.drawCenteredTextWithShadow(this.textRenderer, nameText, x + width / 2, nameY, titleTextColor);
+        drawEmbossedText(ctx, nameText, x + width / 2, nameY, titleTextColor, true);
     }
 
     private void drawDialogText(DrawContext ctx, int x, int y, int width, int height) {
@@ -306,12 +308,57 @@ public class DialogScreen extends Screen {
         int ty = y + boxPadding;
         int maxW = width - boxPadding * 2;
 
-        // Wrap and draw text line by line
+        // Wrap and draw text line by line with beveled embossed effect
         Text textContent = !dialogTextKey.isEmpty() ? Text.translatable(dialogTextKey) : Text.literal(dialogText);
         List<OrderedText> lines = this.textRenderer.wrapLines(textContent, maxW);
         for (OrderedText line : lines) {
-            ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, true);
+            drawEmbossedText(ctx, line, tx, ty, COLOR_TEXT, false);
             ty += this.textRenderer.fontHeight + 1;
+        }
+    }
+
+    private void drawEmbossedText(DrawContext ctx, Object text, int x, int y, int baseColor, boolean centered) {
+        // Draw embossed/beveled text effect using shadow layers
+        // Top-left highlight (lighter)
+        int highlightColor = 0xFF808080;
+        // Bottom-right shadow (darker)
+        int shadowColor = 0xFF202020;
+
+        if (text instanceof Text t) {
+            if (centered) {
+                // Shadow offset bottom-right
+                ctx.drawCenteredTextWithShadow(this.textRenderer, t, x + 1, y + 1, shadowColor);
+                // Highlight offset top-left
+                ctx.drawCenteredTextWithShadow(this.textRenderer, t, x - 1, y - 1, highlightColor);
+                // Main text
+                ctx.drawCenteredTextWithShadow(this.textRenderer, t, x, y, baseColor);
+            } else {
+                // Shadow offset bottom-right
+                ctx.drawTextWithShadow(this.textRenderer, t, x + 1, y + 1, shadowColor);
+                // Highlight offset top-left
+                ctx.drawTextWithShadow(this.textRenderer, t, x - 1, y - 1, highlightColor);
+                // Main text
+                ctx.drawTextWithShadow(this.textRenderer, t, x, y, baseColor);
+            }
+        } else if (text instanceof OrderedText o) {
+            if (centered) {
+                // For OrderedText, we need to calculate width for centering
+                int textWidth = this.textRenderer.getWidth(o);
+                int centerX = x - textWidth / 2;
+                // Shadow offset bottom-right
+                ctx.drawTextWithShadow(this.textRenderer, o, centerX + 1, y + 1, shadowColor);
+                // Highlight offset top-left
+                ctx.drawTextWithShadow(this.textRenderer, o, centerX - 1, y - 1, highlightColor);
+                // Main text
+                ctx.drawTextWithShadow(this.textRenderer, o, centerX, y, baseColor);
+            } else {
+                // Shadow offset bottom-right
+                ctx.drawTextWithShadow(this.textRenderer, o, x + 1, y + 1, shadowColor);
+                // Highlight offset top-left
+                ctx.drawTextWithShadow(this.textRenderer, o, x - 1, y - 1, highlightColor);
+                // Main text
+                ctx.drawTextWithShadow(this.textRenderer, o, x, y, baseColor);
+            }
         }
     }
 
