@@ -22,3 +22,4 @@
 - [x] Simplificar validación de sonidos y partículas en `DialogCommand` con métodos helper
 - [x] Eliminar variables innecesarias en `DialogScreen`
 - [x] Reducir código boilerplate en `DialogNpcRenderer` (de ~230 líneas a ~40)
+- [x] Comandos de color ahora aceptan nombres (red, blue, etc.) con autocompletado y valores hex
