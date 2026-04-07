@@ -2,6 +2,7 @@ package com.example.dialognpc.command;
 
 import com.example.dialognpc.entity.DialogNpcEntity;
 import com.example.dialognpc.entity.ModEntities;
+import com.example.dialognpc.util.MinecraftColors;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -227,6 +228,15 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc sethitbox <entity> <true|false>
+                .then(CommandManager.literal("sethitbox")
+                    .then(CommandManager.argument("visible", StringArgumentType.word())
+                        .executes(ctx -> setHitbox(ctx,
+                            EntityArgumentType.getEntity(ctx, "target"),
+                            StringArgumentType.getString(ctx, "visible")))
+                    )
+                )
+
                 // /npc settexturetype <entity> <vanilla|player|url|base64>
                 .then(CommandManager.literal("settexturetype")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -248,6 +258,31 @@ public class DialogCommand {
                             .executes(ctx -> setCustomTexture(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
                                 StringArgumentType.getString(ctx, "data")))
+                        )
+                    )
+                )
+
+                // /npc setcolor <entity> <colorName> [target: bg|title|border|titletext]
+                // Color names: black, dark_blue, dark_green, dark_aqua, dark_red, dark_purple,
+                //              gold, gray, dark_gray, blue, green, aqua, red, light_purple,
+                //              yellow, white
+                // Target: bg (background), title (title bar), border, titletext (title text)
+                // Default target is bg if not specified
+                .then(CommandManager.literal("setcolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("colorName", StringArgumentType.word())
+                            .executes(ctx -> setColor(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "colorName"),
+                                "bg")
+                            )
+                            .then(CommandManager.argument("colorTarget", StringArgumentType.word())
+                                .executes(ctx -> setColor(ctx,
+                                    EntityArgumentType.getEntity(ctx, "target"),
+                                    StringArgumentType.getString(ctx, "colorName"),
+                                    StringArgumentType.getString(ctx, "colorTarget"))
+                                )
+                            )
                         )
                     )
                 )
@@ -470,6 +505,15 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setHitbox(CommandContext<ServerCommandSource> ctx, Entity entity, String visible) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        boolean value = Boolean.parseBoolean(visible);
+        npc.setShowHitbox(value);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aHitbox " + (value ? "§eshown" : "§chidden")), false);
+        return 1;
+    }
+
     private static int setTextureType(CommandContext<ServerCommandSource> ctx, Entity entity, String type) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -490,6 +534,43 @@ public class DialogCommand {
         if (npc == null) return 0;
         npc.setCustomTextureData(data);
         ctx.getSource().sendFeedback(() -> Text.literal("§aCustom texture data set: §7" + (data.length() > 50 ? data.substring(0, 50) + "..." : data)), false);
+        return 1;
+    }
+
+    private static int setColor(CommandContext<ServerCommandSource> ctx, Entity entity, String colorName, String colorTarget) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+
+        if (!MinecraftColors.isValidColorName(colorName)) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color name. Valid colors: " + String.join(", ", MinecraftColors.getColorNames())));
+            return 0;
+        }
+
+        int color = MinecraftColors.getColor(colorName);
+        colorTarget = colorTarget.toLowerCase();
+
+        switch (colorTarget) {
+            case "bg", "background" -> {
+                npc.setBackgroundColor(color);
+                ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBackground color set to: §e%s §7(0x%08X)", colorName, color)), false);
+            }
+            case "title", "titlebar" -> {
+                npc.setTitleColor(color);
+                ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle bar color set to: §e%s §7(0x%08X)", colorName, color)), false);
+            }
+            case "border" -> {
+                npc.setBorderColor(color);
+                ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBorder color set to: §e%s §7(0x%08X)", colorName, color)), false);
+            }
+            case "titletext", "titletextcolor" -> {
+                npc.setTitleTextColor(color);
+                ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle text color set to: §e%s §7(0x%08X)", colorName, color)), false);
+            }
+            default -> {
+                ctx.getSource().sendError(Text.literal("§cInvalid target. Use: bg, title, border, or titletext"));
+                return 0;
+            }
+        }
         return 1;
     }
 
@@ -514,6 +595,7 @@ public class DialogCommand {
         sb.append("§7Body Rotation: ").append(npc.isBodyRotation() ? "§aYes" : "§cNo").append("\n");
         sb.append("§7Can Move:      ").append(npc.isCanMove() ? "§aYes" : "§cNo").append("\n");
         sb.append("§7Can Rotate:    ").append(npc.isCanRotate() ? "§aYes" : "§cNo").append("\n");
+        sb.append("§7Show Hitbox:   ").append(npc.isShowHitbox() ? "§aYes" : "§cNo").append("\n");
         // Custom texture
         sb.append("§7Texture Type:  §e").append(npc.getTextureType()).append("\n");
         if (!npc.getCustomTextureData().isEmpty()) {

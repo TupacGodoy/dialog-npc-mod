@@ -7,6 +7,9 @@ import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -20,38 +23,47 @@ import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.example.dialognpc.util.MinecraftColors;
 
 public class DialogNpcEntity extends PathAwareEntity {
 
     public record DialogOption(String label, String command) {}
+
+    // TrackedData for client-side synchronization
+    private static final TrackedData<String> TEXTURE_TYPE = DataTracker.registerData(DialogNpcEntity.class, TrackedDataHandlerRegistry.STRING);
+    private static final TrackedData<String> CUSTOM_TEXTURE_DATA = DataTracker.registerData(DialogNpcEntity.class, TrackedDataHandlerRegistry.STRING);
 
     private String dialogTitle = "NPC";
     private String dialogText  = "Hello! How can I help you?";
     private String npcTexture  = "minecraft:textures/entity/player/wide/steve.png";
     private final List<DialogOption> options = new ArrayList<>();
 
-    // Dialog customization
-    private int backgroundColor = 0xFF1A1A2E;
-    private int titleColor    = 0xFF2D2D5A;
+    // Dialog customization - default to Minecraft colors
+    private int backgroundColor = MinecraftColors.DARK_BLUE;
+    private int titleColor    = MinecraftColors.GOLD;
     private int buttonWidth   = 180;
-    private int borderColor   = 0xFF404080;
-    private int titleTextColor = 0xFFFFD966;
+    private int borderColor   = MinecraftColors.GRAY;
+    private int titleTextColor = MinecraftColors.YELLOW;
     private int optionsHeight = 0; // 0 = auto
 
-    // Behavior flags
+    // Behavior flags (not tracked, server-side only)
     private boolean headTracking = true;   // Head follows players
     private boolean bodyRotation = false;  // Body rotates to face players
     private boolean canMove = false;       // Can move from spawn position
     private boolean canRotate = false;     // Can rotate (yaw/pitch changes)
-
-    // Custom texture (base64 or player skin name)
-    private String customTextureData = ""; // base64 skin data or player name
-    private String textureType = "vanilla"; // vanilla, player, url, base64
+    private boolean showHitbox = true;     // Show/hide hitbox
 
     public DialogNpcEntity(EntityType<? extends DialogNpcEntity> type, World world) {
         super(type, world);
         this.setInvulnerable(true);
         this.setPersistent();
+    }
+
+    @Override
+    protected void initDataTracker(DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(TEXTURE_TYPE, "vanilla");
+        builder.add(CUSTOM_TEXTURE_DATA, "");
     }
 
     public static DefaultAttributeContainer.Builder createAttributes() {
@@ -88,6 +100,9 @@ public class DialogNpcEntity extends PathAwareEntity {
     @Override
     public boolean isImmobile() { return !canMove; }
 
+    @Override
+    public boolean isCustomNameVisible() { return showHitbox; }
+
     // ── NBT ──────────────────────────────────────────────────────────────
 
     @Override
@@ -107,9 +122,10 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putBoolean("BodyRotation", bodyRotation);
         nbt.putBoolean("CanMove", canMove);
         nbt.putBoolean("CanRotate", canRotate);
-        // Custom texture
-        nbt.putString("CustomTextureData", customTextureData);
-        nbt.putString("TextureType", textureType);
+        nbt.putBoolean("ShowHitbox", showHitbox);
+        // Custom texture (save from tracked data)
+        nbt.putString("CustomTextureData", this.dataTracker.get(CUSTOM_TEXTURE_DATA));
+        nbt.putString("TextureType", this.dataTracker.get(TEXTURE_TYPE));
         NbtList list = new NbtList();
         for (DialogOption opt : options) {
             NbtCompound c = new NbtCompound();
@@ -137,9 +153,10 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("BodyRotation")) bodyRotation = nbt.getBoolean("BodyRotation");
         if (nbt.contains("CanMove"))      canMove      = nbt.getBoolean("CanMove");
         if (nbt.contains("CanRotate"))    canRotate    = nbt.getBoolean("CanRotate");
-        // Custom texture
-        if (nbt.contains("CustomTextureData")) customTextureData = nbt.getString("CustomTextureData");
-        if (nbt.contains("TextureType"))   textureType   = nbt.getString("TextureType");
+        if (nbt.contains("ShowHitbox"))   showHitbox   = nbt.getBoolean("ShowHitbox");
+        // Custom texture (set tracked data)
+        if (nbt.contains("CustomTextureData")) this.dataTracker.set(CUSTOM_TEXTURE_DATA, nbt.getString("CustomTextureData"));
+        if (nbt.contains("TextureType"))     this.dataTracker.set(TEXTURE_TYPE, nbt.getString("TextureType"));
         // Re-init goals if world is loaded
         if (this.getWorld() != null) {
             this.goalSelector.clear(g -> true);
@@ -190,12 +207,14 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setCanMove(boolean v)        { this.canMove = v; }
     public boolean isCanRotate()               { return canRotate; }
     public void   setCanRotate(boolean v)      { this.canRotate = v; }
+    public boolean isShowHitbox()              { return showHitbox; }
+    public void   setShowHitbox(boolean v)     { this.showHitbox = v; }
 
-    // Custom texture getters/setters
-    public String getCustomTextureData()       { return customTextureData; }
-    public void   setCustomTextureData(String v) { this.customTextureData = v; }
-    public String getTextureType()             { return textureType; }
-    public void   setTextureType(String v)     { this.textureType = v; }
+    // Custom texture getters/setters (use tracked data for client sync)
+    public String getCustomTextureData()       { return this.dataTracker.get(CUSTOM_TEXTURE_DATA); }
+    public void   setCustomTextureData(String v) { this.dataTracker.set(CUSTOM_TEXTURE_DATA, v); }
+    public String getTextureType()             { return this.dataTracker.get(TEXTURE_TYPE); }
+    public void   setTextureType(String v)     { this.dataTracker.set(TEXTURE_TYPE, v); }
 
     private void refreshGoals() {
         if (this.getWorld() != null) {

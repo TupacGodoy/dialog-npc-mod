@@ -1,6 +1,7 @@
 package com.example.dialognpc.screen;
 
 import com.example.dialognpc.network.ModPackets;
+import com.example.dialognpc.util.MinecraftColors;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.DrawContext;
@@ -26,12 +27,12 @@ public class DialogScreen extends Screen {
     private static final int TEXT_BOX_H          = 90;
     private static final int DEFAULT_BTN_WIDTH   = 180;
 
-    // ── Default Colors ───────────────────────────────────────────────────
-    private static final int DEFAULT_BG_COLOR    = 0xFF1A1A2E;
-    private static final int DEFAULT_TITLE_COLOR = 0xFF2D2D5A;
-    private static final int DEFAULT_BORDER_COLOR = 0xFF404080;
-    private static final int COLOR_TITLE_TXT     = 0xFFFFD966;
-    private static final int COLOR_TEXT          = 0xFFFFFFFF;
+    // ── Default Colors (Minecraft) ───────────────────────────────────────
+    private static final int DEFAULT_BG_COLOR    = MinecraftColors.DARK_BLUE;
+    private static final int DEFAULT_TITLE_COLOR = MinecraftColors.GOLD;
+    private static final int DEFAULT_BORDER_COLOR = MinecraftColors.GRAY;
+    private static final int COLOR_TITLE_TXT     = MinecraftColors.YELLOW;
+    private static final int COLOR_TEXT          = MinecraftColors.WHITE;
     private static final int DEFAULT_OPTIONS_HEIGHT = 0; // auto
 
     // ── Data ─────────────────────────────────────────────────────────────
