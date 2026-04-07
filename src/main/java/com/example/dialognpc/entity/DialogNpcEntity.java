@@ -38,6 +38,7 @@ public class DialogNpcEntity extends PathAwareEntity {
     private String dialogTitleKey = "";  // Translation key for title (empty = use literal)
     private String dialogText  = "Hello! How can I help you?";
     private String dialogTextKey = "";   // Translation key for text (empty = use literal)
+    private String npcName = "";         // Custom name for NPC (literal)
     private String npcNameKey = "";      // Translation key for NPC name (empty = use literal)
     private String npcTexture  = "minecraft:textures/entity/player/wide/steve.png";
     private final List<DialogOption> options = new ArrayList<>();
@@ -123,6 +124,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putString("DialogTitleKey", dialogTitleKey);
         nbt.putString("DialogText",  dialogText);
         nbt.putString("DialogTextKey", dialogTextKey);
+        nbt.putString("NpcName", npcName);
         nbt.putString("NpcNameKey", npcNameKey);
         nbt.putString("NpcTexture",  npcTexture);
         nbt.putInt("BackgroundColor", backgroundColor);
@@ -167,6 +169,7 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("DialogTitleKey")) dialogTitleKey = nbt.getString("DialogTitleKey");
         if (nbt.contains("DialogText"))  dialogText  = nbt.getString("DialogText");
         if (nbt.contains("DialogTextKey")) dialogTextKey = nbt.getString("DialogTextKey");
+        if (nbt.contains("NpcName"))     npcName     = nbt.getString("NpcName");
         if (nbt.contains("NpcNameKey"))  npcNameKey  = nbt.getString("NpcNameKey");
         if (nbt.contains("NpcTexture"))  npcTexture  = nbt.getString("NpcTexture");
         if (nbt.contains("BackgroundColor")) backgroundColor = nbt.getInt("BackgroundColor");
@@ -215,6 +218,8 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setDialogTitle(String t)     { this.dialogTitle = t; }
     public String getDialogTitleKey()          { return dialogTitleKey; }
     public void   setDialogTitleKey(String k)  { this.dialogTitleKey = k; }
+    public String getNpcName()                 { return npcName; }
+    public void   setNpcName(String name)      { this.npcName = name; }
     public String getNpcNameKey()              { return npcNameKey; }
     public void   setNpcNameKey(String k)      { this.npcNameKey = k; }
     public String getDialogText()              { return dialogText; }

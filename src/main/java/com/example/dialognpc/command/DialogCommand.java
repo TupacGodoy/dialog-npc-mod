@@ -405,10 +405,12 @@ public class DialogCommand {
 
                 // /npc sethitbox <entity> <true|false>
                 .then(CommandManager.literal("sethitbox")
-                    .then(CommandManager.argument("visible", StringArgumentType.word())
-                        .executes(ctx -> setHitbox(ctx,
-                            EntityArgumentType.getEntity(ctx, "target"),
-                            StringArgumentType.getString(ctx, "visible")))
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("visible", StringArgumentType.word())
+                            .executes(ctx -> setHitbox(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "visible")))
+                        )
                     )
                 )
 
@@ -440,20 +442,24 @@ public class DialogCommand {
                 // /npc setname <entity> <name>
                 // Sets the NPC's custom name (displayed above head in dialog)
                 .then(CommandManager.literal("setname")
-                    .then(CommandManager.argument("name", StringArgumentType.greedyString())
-                        .executes(ctx -> setNpcName(ctx,
-                            EntityArgumentType.getEntity(ctx, "target"),
-                            StringArgumentType.getString(ctx, "name")))
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                            .executes(ctx -> setNpcName(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "name")))
+                        )
                     )
                 )
 
                 // /npc setnamekey <entity> <translationKey>
                 // Sets the NPC's name translation key (for localized names)
                 .then(CommandManager.literal("setnamekey")
-                    .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
-                        .executes(ctx -> setNpcNameKey(ctx,
-                            EntityArgumentType.getEntity(ctx, "target"),
-                            StringArgumentType.getString(ctx, "translationKey")))
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("translationKey", StringArgumentType.greedyString())
+                            .executes(ctx -> setNpcNameKey(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                StringArgumentType.getString(ctx, "translationKey")))
+                        )
                     )
                 )
 
@@ -858,7 +864,9 @@ public class DialogCommand {
     private static int setNpcName(CommandContext<ServerCommandSource> ctx, Entity entity, String name) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
+        npc.setNpcName(name);
         npc.setCustomName(Text.literal(name));
+        npc.setCustomNameVisible(true);
         ctx.getSource().sendFeedback(() -> Text.literal("§aNPC name set to: §e" + name), false);
         return 1;
     }
@@ -919,7 +927,7 @@ public class DialogCommand {
         sb.append("§7Title Key:     §e").append(npc.getDialogTitleKey().isEmpty() ? "(none)" : npc.getDialogTitleKey()).append("\n");
         sb.append("§7Text:          §f").append(npc.getDialogText()).append("\n");
         sb.append("§7Text Key:      §f").append(npc.getDialogTextKey().isEmpty() ? "(none)" : npc.getDialogTextKey()).append("\n");
-        sb.append("§7Name:          §e").append(npc.getCustomName() != null ? npc.getCustomName().getString() : "(none)").append("\n");
+        sb.append("§7Name:          §e").append(npc.getNpcName().isEmpty() ? "(none)" : npc.getNpcName()).append("\n");
         sb.append("§7Name Key:      §e").append(npc.getNpcNameKey().isEmpty() ? "(none)" : npc.getNpcNameKey()).append("\n");
         sb.append("§7Texture:       §f").append(npc.getNpcTexture()).append("\n");
         sb.append(String.format("§7BG Color:      §f0x%08X\n", npc.getBackgroundColor()));
