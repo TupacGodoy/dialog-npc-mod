@@ -26,10 +26,7 @@ public class DialogScreen extends Screen {
     private static final int TEXT_BOX_H   = 70;
 
     // ── Colors ───────────────────────────────────────────────────────────
-    private static final int COLOR_BG        = 0xE0101010;
-    private static final int COLOR_TITLE_BAR = 0xFF3D3D7A;
     private static final int COLOR_TITLE_TXT = 0xFFFFD966;
-    private static final int COLOR_BORDER    = 0xFF7070CC;
     private static final int COLOR_TEXT      = 0xFFFFFFFF;
 
     // ── Data ─────────────────────────────────────────────────────────────
@@ -82,9 +79,13 @@ public class DialogScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // Fill with semi-transparent black instead of blurred background
-        ctx.fill(0, 0, this.width, this.height, 0x88000000);
+        // Render semi-transparent dark overlay (no blur)
+        ctx.fill(0, 0, this.width, this.height, 0x66000000);
+
+        // Draw dialog box
         drawDialog(ctx);
+
+        // Render buttons and other widgets
         super.render(ctx, mouseX, mouseY, delta);
     }
 
@@ -93,36 +94,44 @@ public class DialogScreen extends Screen {
         int boxX   = cx - BOX_WIDTH / 2;
         int boxTop = calcBoxTop();
 
-        // Title bar
-        fill(ctx, boxX, boxTop, BOX_WIDTH, TITLE_HEIGHT, COLOR_TITLE_BAR);
-        border(ctx, boxX, boxTop, BOX_WIDTH, TITLE_HEIGHT, COLOR_BORDER);
+        // Draw background rectangle using Minecraft's panel texture style
+        // Dark background
+        ctx.fill(boxX, boxTop, boxX + BOX_WIDTH, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2, 0xDD101010);
+
+        // Border - brighter outline
+        ctx.fill(boxX - 1, boxTop - 1, boxX + BOX_WIDTH + 1, boxTop, 0xFF404080);
+        ctx.fill(boxX - 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2, boxX + BOX_WIDTH + 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
+        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
+        ctx.fill(boxX + BOX_WIDTH, boxTop - 1, boxX + BOX_WIDTH + 1, boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 1, 0xFF404080);
+
+        // Title bar background
+        ctx.fill(boxX, boxTop, boxX + BOX_WIDTH, boxTop + TITLE_HEIGHT, 0xFF3D3D7A);
+
+        // Title text - centered with shadow
         ctx.drawCenteredTextWithShadow(this.textRenderer, dialogTitle,
             cx, boxTop + (TITLE_HEIGHT - 8) / 2, COLOR_TITLE_TXT);
 
-        // Text area
-        int textTop = boxTop + TITLE_HEIGHT;
-        int textH   = TEXT_BOX_H + BOX_PADDING * 2;
-        fill(ctx, boxX, textTop, BOX_WIDTH, textH, COLOR_BG);
-        border(ctx, boxX, textTop, BOX_WIDTH, textH, COLOR_BORDER);
-
-        // Portrait
+        // Portrait background
         int px = boxX + BOX_PADDING;
-        int py = textTop + BOX_PADDING;
-        fill(ctx, px - 2, py - 2, PORTRAIT_SZ + 4, PORTRAIT_SZ + 4, COLOR_BORDER);
-        fill(ctx, px, py, PORTRAIT_SZ, PORTRAIT_SZ, 0xFF202040);
-        // Head (skin UV 8,8 → 8×8 on 64×64 sheet)
+        int py = boxTop + TITLE_HEIGHT + BOX_PADDING;
+        ctx.fill(px - 2, py - 2, px + PORTRAIT_SZ + 2, py + PORTRAIT_SZ + 2, 0xFF404080);
+        ctx.fill(px, py, px + PORTRAIT_SZ, py + PORTRAIT_SZ, 0xFF202040);
+
+        // Draw NPC head texture
         ctx.drawTexture(npcTexture, px, py, PORTRAIT_SZ, PORTRAIT_SZ, 8, 8, 8, 8, 64, 64);
         // Hat overlay
         ctx.drawTexture(npcTexture, px, py, PORTRAIT_SZ, PORTRAIT_SZ, 40, 8, 8, 8, 64, 64);
 
-        // Wrapped text - render after portrait to ensure proper blending
+        // Dialog text area - to the right of portrait
         int tx   = px + PORTRAIT_SZ + BOX_PADDING;
-        int ty   = py + 2;
+        int ty   = py + 1;
         int maxW = BOX_WIDTH - PORTRAIT_SZ - BOX_PADDING * 3;
+
+        // Wrap and draw text line by line
         List<OrderedText> lines = this.textRenderer.wrapLines(Text.literal(dialogText), maxW);
         for (OrderedText line : lines) {
-            ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, false);
-            ty += this.textRenderer.fontHeight + 2;
+            ctx.drawText(this.textRenderer, line, tx, ty, COLOR_TEXT, true);
+            ty += this.textRenderer.fontHeight + 1;
         }
     }
 
@@ -132,17 +141,6 @@ public class DialogScreen extends Screen {
         int buttonsH = (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP);
         int dialogH  = TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2;
         return this.height / 2 - (dialogH + buttonsH + 4) / 2;
-    }
-
-    private static void fill(DrawContext ctx, int x, int y, int w, int h, int color) {
-        ctx.fill(x, y, x + w, y + h, color);
-    }
-
-    private static void border(DrawContext ctx, int x, int y, int w, int h, int color) {
-        ctx.fill(x,         y,         x + w,     y + 1,     color);
-        ctx.fill(x,         y + h - 1, x + w,     y + h,     color);
-        ctx.fill(x,         y,         x + 1,     y + h,     color);
-        ctx.fill(x + w - 1, y,         x + w,     y + h,     color);
     }
 
     @Override
