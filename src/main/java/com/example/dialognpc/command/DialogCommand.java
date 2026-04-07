@@ -206,25 +206,39 @@ public class DialogCommand {
                 )
 
                 // /npc setbgcolor <entity> <color>
-                // Color format: 0xAARRGGBB (hex)
+                // Color: color name (red, blue, green, etc.) or hex value (0xAARRGGBB)
                 .then(CommandManager.literal("setbgcolor")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
-                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
-                            .executes(ctx -> setBackgroundColor(ctx,
+                        .then(CommandManager.argument("color", StringArgumentType.string())
+                            .suggests((ctx, builder) -> {
+                                for (String colorName : com.example.dialognpc.util.MinecraftColors.getColorNames()) {
+                                    builder.suggest(colorName);
+                                }
+                                builder.suggest("0xFF");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> setBackgroundColorFromString(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
-                                IntegerArgumentType.getInteger(ctx, "color")))
+                                StringArgumentType.getString(ctx, "color")))
                         )
                     )
                 )
 
                 // /npc settitlecolor <entity> <color>
-                // Color format: 0xAARRGGBB (hex)
+                // Color: color name (red, blue, green, etc.) or hex value (0xAARRGGBB)
                 .then(CommandManager.literal("settitlecolor")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
-                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
-                            .executes(ctx -> setTitleColor(ctx,
+                        .then(CommandManager.argument("color", StringArgumentType.string())
+                            .suggests((ctx, builder) -> {
+                                for (String colorName : com.example.dialognpc.util.MinecraftColors.getColorNames()) {
+                                    builder.suggest(colorName);
+                                }
+                                builder.suggest("0xFF");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> setTitleColorFromString(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
-                                IntegerArgumentType.getInteger(ctx, "color")))
+                                StringArgumentType.getString(ctx, "color")))
                         )
                     )
                 )
@@ -241,23 +255,39 @@ public class DialogCommand {
                 )
 
                 // /npc setbordercolor <entity> <color>
+                // Color: color name (red, blue, green, etc.) or hex value (0xAARRGGBB)
                 .then(CommandManager.literal("setbordercolor")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
-                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
-                            .executes(ctx -> setBorderColor(ctx,
+                        .then(CommandManager.argument("color", StringArgumentType.string())
+                            .suggests((ctx, builder) -> {
+                                for (String colorName : com.example.dialognpc.util.MinecraftColors.getColorNames()) {
+                                    builder.suggest(colorName);
+                                }
+                                builder.suggest("0xFF");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> setBorderColorFromString(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
-                                IntegerArgumentType.getInteger(ctx, "color")))
+                                StringArgumentType.getString(ctx, "color")))
                         )
                     )
                 )
 
                 // /npc settitletextcolor <entity> <color>
+                // Color: color name (red, blue, green, etc.) or hex value (0xAARRGGBB)
                 .then(CommandManager.literal("settitletextcolor")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
-                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
-                            .executes(ctx -> setTitleTextColor(ctx,
+                        .then(CommandManager.argument("color", StringArgumentType.string())
+                            .suggests((ctx, builder) -> {
+                                for (String colorName : com.example.dialognpc.util.MinecraftColors.getColorNames()) {
+                                    builder.suggest(colorName);
+                                }
+                                builder.suggest("0xFF");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> setTitleTextColorFromString(ctx,
                                 EntityArgumentType.getEntity(ctx, "target"),
-                                IntegerArgumentType.getInteger(ctx, "color")))
+                                StringArgumentType.getString(ctx, "color")))
                         )
                     )
                 )
@@ -649,19 +679,29 @@ public class DialogCommand {
         return 1;
     }
 
-    private static int setBackgroundColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+    private static int setBackgroundColorFromString(CommandContext<ServerCommandSource> ctx, Entity entity, String colorStr) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
+        Integer color = parseColor(colorStr);
+        if (color == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color. Use a color name (red, blue, green, etc.) or hex value (0xAARRGGBB)"));
+            return 0;
+        }
         npc.setBackgroundColor(color);
-        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBackground color set to: §70x%08X", color)), false);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBackground color set to: §e%s §7(0x%08X)", colorStr, color)), false);
         return 1;
     }
 
-    private static int setTitleColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+    private static int setTitleColorFromString(CommandContext<ServerCommandSource> ctx, Entity entity, String colorStr) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
+        Integer color = parseColor(colorStr);
+        if (color == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color. Use a color name (red, blue, green, etc.) or hex value (0xAARRGGBB)"));
+            return 0;
+        }
         npc.setTitleColor(color);
-        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle bar color set to: §70x%08X", color)), false);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle bar color set to: §e%s §7(0x%08X)", colorStr, color)), false);
         return 1;
     }
 
@@ -673,19 +713,29 @@ public class DialogCommand {
         return 1;
     }
 
-    private static int setBorderColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+    private static int setBorderColorFromString(CommandContext<ServerCommandSource> ctx, Entity entity, String colorStr) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
+        Integer color = parseColor(colorStr);
+        if (color == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color. Use a color name (red, blue, green, etc.) or hex value (0xAARRGGBB)"));
+            return 0;
+        }
         npc.setBorderColor(color);
-        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBorder color set to: §70x%08X", color)), false);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBorder color set to: §e%s §7(0x%08X)", colorStr, color)), false);
         return 1;
     }
 
-    private static int setTitleTextColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+    private static int setTitleTextColorFromString(CommandContext<ServerCommandSource> ctx, Entity entity, String colorStr) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
+        Integer color = parseColor(colorStr);
+        if (color == null) {
+            ctx.getSource().sendError(Text.literal("§cInvalid color. Use a color name (red, blue, green, etc.) or hex value (0xAARRGGBB)"));
+            return 0;
+        }
         npc.setTitleTextColor(color);
-        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle text color set to: §70x%08X", color)), false);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle text color set to: §e%s §7(0x%08X)", colorStr, color)), false);
         return 1;
     }
 
@@ -921,6 +971,48 @@ public class DialogCommand {
     }
 
     // ── Utility ──────────────────────────────────────────────────────────
+
+    /**
+     * Parse a color string into an ARGB integer.
+     * Accepts color names (red, blue, green, etc.) or hex values (0xAARRGGBB, #RRGGBB, RRGGBB).
+     * Returns null if the input is invalid.
+     */
+    private static Integer parseColor(String colorStr) {
+        if (colorStr == null || colorStr.isBlank()) return null;
+
+        String trimmed = colorStr.trim();
+
+        // Try color name first
+        if (com.example.dialognpc.util.MinecraftColors.isValidColorName(trimmed)) {
+            return com.example.dialognpc.util.MinecraftColors.getColor(trimmed);
+        }
+
+        // Try hex value
+        try {
+            String hex = trimmed;
+            if (hex.startsWith("0x") || hex.startsWith("0X")) {
+                hex = hex.substring(2);
+            } else if (hex.startsWith("#")) {
+                hex = hex.substring(1);
+            }
+
+            // Parse hex value
+            long value = Long.parseLong(hex, 16);
+
+            // If the value looks like RRGGBB (6 chars), prepend FF for full alpha
+            if (hex.length() == 6) {
+                return (int) (0xFF000000L | value);
+            }
+            // If it's 8 chars (AARRGGBB), use as-is
+            if (hex.length() == 8) {
+                return (int) value;
+            }
+        } catch (NumberFormatException e) {
+            // Not a valid hex value
+        }
+
+        return null;
+    }
 
     private static DialogNpcEntity asNpc(CommandContext<ServerCommandSource> ctx, Entity entity) {
         if (entity instanceof DialogNpcEntity npc) return npc;
