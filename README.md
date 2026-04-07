@@ -70,6 +70,34 @@ You can also use textures from your own resource pack:
 Place `nurse_joy.png` (64×64 player skin format) at:
 `assets/dialognpc/textures/entity/nurse_joy.png` inside a resource pack.
 
+### Set custom texture without resource pack
+Use textures directly from URLs, player skins, or base64 data — no resource pack needed!
+
+```
+/npc settexturetype @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <vanilla|player|url|base64>
+/npc setcustomtexture @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <data>
+```
+
+**Examples:**
+
+Use a player's skin:
+```
+/npc settexturetype @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] player
+/npc setcustomtexture @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] Notch
+```
+
+Use a texture from URL:
+```
+/npc settexturetype @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] url
+/npc setcustomtexture @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] https://i.imgur.com/your_texture.png
+```
+
+Use base64 encoded image data:
+```
+/npc settexturetype @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] base64
+/npc setcustomtexture @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHe...
+```
+
 ### Set dialog background color
 ```
 /npc setbgcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF1A1A2E
@@ -106,6 +134,29 @@ Color format: `0xAARRGGBB` (hex). Example: `0xFFFFD966` = yellow-gold text.
 ```
 Height in pixels (0 = auto, adjusts to fit buttons). Use custom values to add extra space.
 
+### Configure NPC behavior
+Control how the NPC interacts with players:
+
+```
+/npc setheadtracking @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+Head follows nearby players (default: true).
+
+```
+/npc setbodyrotation @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+Body rotates to face players (default: false).
+
+```
+/npc setcanmove @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+NPC can move from spawn position and can be pushed (default: false).
+
+```
+/npc setcanrotate @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <true|false>
+```
+NPC can rotate (yaw/pitch changes) (default: false).
+
 ### Show NPC info
 ```
 /npc info @e[type=dialognpc:dialog_npc,sort=nearest,limit=1]
@@ -135,8 +186,17 @@ automatically. They survive restarts, chunk unloads, and server reboots.
 
 ---
 
-## 🎨 Custom textures / resource pack
+## 🎨 Custom textures
 
+### Without resource pack (recommended)
+Use the `settexturetype` and `setcustomtexture` commands to load textures from:
+- **Player skins**: Use any Minecraft player's skin
+- **URLs**: Direct links to PNG images (Imgur, etc.)
+- **Base64**: Embedded image data
+
+See the commands above for examples.
+
+### With resource pack
 Create a resource pack with this structure:
 
 ```
