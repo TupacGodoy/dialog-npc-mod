@@ -27,7 +27,7 @@ import com.example.dialognpc.util.MinecraftColors;
 
 public class DialogNpcEntity extends PathAwareEntity {
 
-    public record DialogOption(String label, String command) {}
+    public record DialogOption(String label, String command, String soundId, String particleType, int particleCount) {}
 
     // TrackedData for client-side synchronization
     private static final TrackedData<String> TEXTURE_TYPE = DataTracker.registerData(DialogNpcEntity.class, TrackedDataHandlerRegistry.STRING);
@@ -45,6 +45,13 @@ public class DialogNpcEntity extends PathAwareEntity {
     private int borderColor   = MinecraftColors.GRAY;
     private int titleTextColor = MinecraftColors.YELLOW;
     private int optionsHeight = 0; // 0 = auto
+
+    // Modal layout customization
+    private int boxWidth    = 280;  // Default box width
+    private int boxHeight   = 0;    // 0 = auto
+    private int titleHeight = 24;   // Title bar height
+    private int boxPadding  = 10;   // Padding inside box
+    private int portraitSize = 40;  // Portrait size (px)
 
     // Behavior flags (not tracked, server-side only)
     private boolean headTracking = true;   // Head follows players
@@ -117,6 +124,12 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putInt("BorderColor", borderColor);
         nbt.putInt("TitleTextColor", titleTextColor);
         nbt.putInt("OptionsHeight", optionsHeight);
+        // Modal layout
+        nbt.putInt("BoxWidth", boxWidth);
+        nbt.putInt("BoxHeight", boxHeight);
+        nbt.putInt("TitleHeight", titleHeight);
+        nbt.putInt("BoxPadding", boxPadding);
+        nbt.putInt("PortraitSize", portraitSize);
         // Behavior flags
         nbt.putBoolean("HeadTracking", headTracking);
         nbt.putBoolean("BodyRotation", bodyRotation);
@@ -131,6 +144,9 @@ public class DialogNpcEntity extends PathAwareEntity {
             NbtCompound c = new NbtCompound();
             c.putString("Label",   opt.label());
             c.putString("Command", opt.command());
+            c.putString("SoundId", opt.soundId() != null ? opt.soundId() : "");
+            c.putString("ParticleType", opt.particleType() != null ? opt.particleType() : "");
+            c.putInt("ParticleCount", opt.particleCount());
             list.add(c);
         }
         nbt.put("DialogOptions", list);
@@ -148,6 +164,12 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("BorderColor"))   borderColor   = nbt.getInt("BorderColor");
         if (nbt.contains("TitleTextColor")) titleTextColor = nbt.getInt("TitleTextColor");
         if (nbt.contains("OptionsHeight")) optionsHeight = nbt.getInt("OptionsHeight");
+        // Modal layout
+        if (nbt.contains("BoxWidth"))    boxWidth    = nbt.getInt("BoxWidth");
+        if (nbt.contains("BoxHeight"))   boxHeight   = nbt.getInt("BoxHeight");
+        if (nbt.contains("TitleHeight")) titleHeight = nbt.getInt("TitleHeight");
+        if (nbt.contains("BoxPadding"))  boxPadding  = nbt.getInt("BoxPadding");
+        if (nbt.contains("PortraitSize")) portraitSize = nbt.getInt("PortraitSize");
         // Behavior flags
         if (nbt.contains("HeadTracking")) headTracking = nbt.getBoolean("HeadTracking");
         if (nbt.contains("BodyRotation")) bodyRotation = nbt.getBoolean("BodyRotation");
@@ -167,7 +189,10 @@ public class DialogNpcEntity extends PathAwareEntity {
             NbtList list = nbt.getList("DialogOptions", NbtElement.COMPOUND_TYPE);
             for (int i = 0; i < list.size(); i++) {
                 NbtCompound c = list.getCompound(i);
-                options.add(new DialogOption(c.getString("Label"), c.getString("Command")));
+                String soundId = c.contains("SoundId") && !c.getString("SoundId").isEmpty() ? c.getString("SoundId") : null;
+                String particleType = c.contains("ParticleType") && !c.getString("ParticleType").isEmpty() ? c.getString("ParticleType") : null;
+                int particleCount = c.contains("ParticleCount") ? c.getInt("ParticleCount") : 0;
+                options.add(new DialogOption(c.getString("Label"), c.getString("Command"), soundId, particleType, particleCount));
             }
         }
     }
@@ -197,6 +222,18 @@ public class DialogNpcEntity extends PathAwareEntity {
     public void   setTitleTextColor(int c)     { this.titleTextColor = c; }
     public int    getOptionsHeight()           { return optionsHeight; }
     public void   setOptionsHeight(int h)      { this.optionsHeight = h; }
+
+    // Modal layout getters/setters
+    public int    getBoxWidth()                { return boxWidth; }
+    public void   setBoxWidth(int w)           { this.boxWidth = w; }
+    public int    getBoxHeight()               { return boxHeight; }
+    public void   setBoxHeight(int h)          { this.boxHeight = h; }
+    public int    getTitleHeight()             { return titleHeight; }
+    public void   setTitleHeight(int h)        { this.titleHeight = h; }
+    public int    getBoxPadding()              { return boxPadding; }
+    public void   setBoxPadding(int p)         { this.boxPadding = p; }
+    public int    getPortraitSize()            { return portraitSize; }
+    public void   setPortraitSize(int s)       { this.portraitSize = s; }
 
     // Behavior getters/setters
     public boolean isHeadTracking()            { return headTracking; }

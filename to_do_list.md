@@ -8,5 +8,8 @@
 - [x] Comportamiento de NPC (headTracking, bodyRotation, canMove, canRotate)
 - [x] Comandos para configurar comportamiento (setheadtracking, setbodyrotation, setcanmove, setcanrotate)
 - [x] Comandos para texturas personalizadas (settexturetype, setcustomtexture)
+- [x] Soporte para sonidos en opciones de diálogo
+- [x] Soporte para partículas en opciones de diálogo
+- [x] Comando addoption mejorado con sonido y partículas
 
 ## Pendiente

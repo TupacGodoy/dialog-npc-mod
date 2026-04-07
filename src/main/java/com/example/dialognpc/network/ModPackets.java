@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -32,13 +31,24 @@ public class ModPackets {
         String title,
         String text,
         String texture,
+        String textureType,
+        String customTextureData,
+        String npcName,
         List<String> labels,
+        List<String> sounds,
+        List<String> particles,
+        List<Integer> particleCounts,
         int    backgroundColor,
         int    titleColor,
         int    buttonWidth,
         int    borderColor,
         int    titleTextColor,
-        int    optionsHeight
+        int    optionsHeight,
+        int    boxWidth,
+        int    boxHeight,
+        int    titleHeight,
+        int    boxPadding,
+        int    portraitSize
     ) implements CustomPayload {
 
         public static final CustomPayload.Id<OpenDialogPayload> ID =
@@ -52,16 +62,32 @@ public class ModPackets {
                     String title   = buf.readString();
                     String text    = buf.readString();
                     String texture = buf.readString();
+                    String textureType = buf.readString();
+                    String customTextureData = buf.readString();
+                    String npcName = buf.readString();
                     int count = buf.readVarInt();
                     List<String> labels = new ArrayList<>(count);
-                    for (int i = 0; i < count; i++) labels.add(buf.readString());
+                    List<String> sounds = new ArrayList<>(count);
+                    List<String> particles = new ArrayList<>(count);
+                    List<Integer> particleCounts = new ArrayList<>(count);
+                    for (int i = 0; i < count; i++) {
+                        labels.add(buf.readString());
+                        sounds.add(buf.readBoolean() ? buf.readString() : "");
+                        particles.add(buf.readBoolean() ? buf.readString() : "");
+                        particleCounts.add(buf.readVarInt());
+                    }
                     int bgColor = buf.readInt();
                     int titleColor = buf.readInt();
                     int btnWidth = buf.readInt();
                     int borderColor = buf.readInt();
                     int titleTextColor = buf.readInt();
                     int optionsHeight = buf.readInt();
-                    return new OpenDialogPayload(uuid, title, text, texture, labels, bgColor, titleColor, btnWidth, borderColor, titleTextColor, optionsHeight);
+                    int boxWidth = buf.readInt();
+                    int boxHeight = buf.readInt();
+                    int titleHeight = buf.readInt();
+                    int boxPadding = buf.readInt();
+                    int portraitSize = buf.readInt();
+                    return new OpenDialogPayload(uuid, title, text, texture, textureType, customTextureData, npcName, labels, sounds, particles, particleCounts, bgColor, titleColor, btnWidth, borderColor, titleTextColor, optionsHeight, boxWidth, boxHeight, titleHeight, boxPadding, portraitSize);
                 }
 
                 @Override
@@ -70,14 +96,29 @@ public class ModPackets {
                     buf.writeString(p.title());
                     buf.writeString(p.text());
                     buf.writeString(p.texture());
+                    buf.writeString(p.textureType());
+                    buf.writeString(p.customTextureData());
+                    buf.writeString(p.npcName());
                     buf.writeVarInt(p.labels().size());
-                    p.labels().forEach(buf::writeString);
+                    for (int i = 0; i < p.labels().size(); i++) {
+                        buf.writeString(p.labels().get(i));
+                        buf.writeBoolean(p.sounds().get(i) != null && !p.sounds().get(i).isEmpty());
+                        if (p.sounds().get(i) != null && !p.sounds().get(i).isEmpty()) buf.writeString(p.sounds().get(i));
+                        buf.writeBoolean(p.particles().get(i) != null && !p.particles().get(i).isEmpty());
+                        if (p.particles().get(i) != null && !p.particles().get(i).isEmpty()) buf.writeString(p.particles().get(i));
+                        buf.writeVarInt(p.particleCounts().get(i));
+                    }
                     buf.writeInt(p.backgroundColor());
                     buf.writeInt(p.titleColor());
                     buf.writeInt(p.buttonWidth());
                     buf.writeInt(p.borderColor());
                     buf.writeInt(p.titleTextColor());
                     buf.writeInt(p.optionsHeight());
+                    buf.writeInt(p.boxWidth());
+                    buf.writeInt(p.boxHeight());
+                    buf.writeInt(p.titleHeight());
+                    buf.writeInt(p.boxPadding());
+                    buf.writeInt(p.portraitSize());
                 }
             };
 
@@ -142,47 +183,41 @@ public class ModPackets {
     }
 
     public static void registerClientPackets() {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-            .registerGlobalReceiver(OpenDialogPayload.ID, (payload, context) ->
-                context.client().execute(() ->
-                    context.client().setScreen(
-                        new com.example.dialognpc.screen.DialogScreen(
-                            payload.npcUuid(),
-                            payload.title(),
-                            payload.text(),
-                            payload.texture(),
-                            payload.labels(),
-                            payload.backgroundColor(),
-                            payload.titleColor(),
-                            payload.buttonWidth(),
-                            payload.borderColor(),
-                            payload.titleTextColor(),
-                            payload.optionsHeight()
-                        )
-                    )
-                )
-            );
+        ClientPacketHandler.register();
     }
 
     // ── Server helper: send dialog to player ─────────────────────────────
 
     public static void sendOpenDialog(ServerPlayerEntity player, DialogNpcEntity npc) {
-        List<String> labels = npc.getDialogOptions().stream()
-            .map(DialogNpcEntity.DialogOption::label)
-            .toList();
+        List<DialogNpcEntity.DialogOption> opts = npc.getDialogOptions();
+        List<String> labels = opts.stream().map(DialogNpcEntity.DialogOption::label).toList();
+        List<String> sounds = opts.stream().map(o -> o.soundId() != null ? o.soundId() : "").toList();
+        List<String> particles = opts.stream().map(o -> o.particleType() != null ? o.particleType() : "").toList();
+        List<Integer> particleCounts = opts.stream().map(DialogNpcEntity.DialogOption::particleCount).toList();
 
         ServerPlayNetworking.send(player, new OpenDialogPayload(
             npc.getUuid(),
             npc.getDialogTitle(),
             npc.getDialogText(),
             npc.getNpcTexture(),
+            npc.getTextureType(),
+            npc.getCustomTextureData(),
+            npc.getCustomName() != null ? npc.getCustomName().getString() : "",
             labels,
+            sounds,
+            particles,
+            particleCounts,
             npc.getBackgroundColor(),
             npc.getTitleColor(),
             npc.getButtonWidth(),
             npc.getBorderColor(),
             npc.getTitleTextColor(),
-            npc.getOptionsHeight()
+            npc.getOptionsHeight(),
+            npc.getBoxWidth(),
+            npc.getBoxHeight(),
+            npc.getTitleHeight(),
+            npc.getBoxPadding(),
+            npc.getPortraitSize()
         ));
     }
 

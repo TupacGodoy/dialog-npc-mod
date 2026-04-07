@@ -17,7 +17,12 @@
       "Bash(chmod +x gradlew)",
       "Bash(git push:*)",
       "Bash(gh repo:*)",
-      "Bash(./gradlew clean:*)"
+      "Bash(./gradlew clean:*)",
+      "Bash(rm -f \"C:\\\\Users\\\\zhili\\\\AppData\\\\Roaming\\\\ModrinthApp\\\\profiles\\\\COBBLEMANIA 1.0 \\(1\\)\\\\mods\\\\dialog-npc-*.jar\")",
+      "Bash(cp \"C:\\\\Users\\\\zhili\\\\Documents\\\\dialog-npc-mod\\\\build\\\\libs\\\\dialog-npc-*.jar\" \"C:\\\\Users\\\\zhili\\\\AppData\\\\Roaming\\\\ModrinthApp\\\\profiles\\\\COBBLEMANIA 1.0 \\(1\\)\\\\mods\\\\\")",
+      "Bash(cp build/libs/dialognpc-*.jar 'C:/Users/zhili/AppData/Roaming/ModrinthApp/profiles/COBBLEMANIA 1.0 \\(1\\)/mods/')",
+      "Read(//c/Users/zhili/AppData/Roaming/ModrinthApp/profiles/COBBLEMANIA 1.0 \\(1\\)/mods/**)",
+      "Bash(scp:*)"
     ]
   }
 }

@@ -68,17 +68,59 @@ public class DialogCommand {
                     )
                 )
 
-                // /npc addoption <entity> <label> <command>
+                // /npc addoption <entity> <label> <command> [sound] [particle] [particleCount]
                 // label: quotable string (use "Heal Party" for spaces)
                 // command: greedy string (rest of line)
+                // sound: optional sound ID (e.g., minecraft:entity.player.levelup)
+                // particle: optional particle type (e.g., minecraft:happy_villager)
+                // particleCount: number of particles (0-100)
                 .then(CommandManager.literal("addoption")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
                         .then(CommandManager.argument("label", StringArgumentType.string())
-                            .then(CommandManager.argument("command", StringArgumentType.greedyString())
+                            .then(CommandManager.argument("command", StringArgumentType.string())
                                 .executes(ctx -> addOption(ctx,
                                     EntityArgumentType.getEntity(ctx, "target"),
                                     StringArgumentType.getString(ctx, "label"),
-                                    StringArgumentType.getString(ctx, "command")))
+                                    StringArgumentType.getString(ctx, "command"),
+                                    null, null, 0))
+                                .then(CommandManager.argument("sound", StringArgumentType.string())
+                                    .suggests((ctx, builder) -> {
+                                        net.minecraft.registry.Registries.SOUND_EVENT.getIndexedEntries().forEach(entry -> {
+                                            entry.getKey().ifPresent(key -> builder.suggest(key.getValue().toString()));
+                                        });
+                                        return builder.buildFuture();
+                                    })
+                                    .executes(ctx -> addOption(ctx,
+                                        EntityArgumentType.getEntity(ctx, "target"),
+                                        StringArgumentType.getString(ctx, "label"),
+                                        StringArgumentType.getString(ctx, "command"),
+                                        StringArgumentType.getString(ctx, "sound"),
+                                        null, 0))
+                                    .then(CommandManager.argument("particle", StringArgumentType.string())
+                                        .suggests((ctx, builder) -> {
+                                            net.minecraft.registry.Registries.PARTICLE_TYPE.getIndexedEntries().forEach(entry -> {
+                                                entry.getKey().ifPresent(key -> builder.suggest(key.getValue().toString()));
+                                            });
+                                            return builder.buildFuture();
+                                        })
+                                        .executes(ctx -> addOption(ctx,
+                                            EntityArgumentType.getEntity(ctx, "target"),
+                                            StringArgumentType.getString(ctx, "label"),
+                                            StringArgumentType.getString(ctx, "command"),
+                                            StringArgumentType.getString(ctx, "sound"),
+                                            StringArgumentType.getString(ctx, "particle"),
+                                            5))
+                                        .then(CommandManager.argument("particleCount", IntegerArgumentType.integer(0, 100))
+                                            .executes(ctx -> addOption(ctx,
+                                                EntityArgumentType.getEntity(ctx, "target"),
+                                                StringArgumentType.getString(ctx, "label"),
+                                                StringArgumentType.getString(ctx, "command"),
+                                                StringArgumentType.getString(ctx, "sound"),
+                                                StringArgumentType.getString(ctx, "particle"),
+                                                IntegerArgumentType.getInteger(ctx, "particleCount")))
+                                        )
+                                    )
+                                )
                             )
                         )
                     )
@@ -184,6 +226,62 @@ public class DialogCommand {
                     )
                 )
 
+                // Modal layout commands
+                // /npc setboxwidth <entity> <width>
+                .then(CommandManager.literal("setboxwidth")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("width", IntegerArgumentType.integer(200, 500))
+                            .executes(ctx -> setBoxWidth(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "width")))
+                        )
+                    )
+                )
+
+                // /npc setboxheight <entity> <height> (0 = auto)
+                .then(CommandManager.literal("setboxheight")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("height", IntegerArgumentType.integer(0, 500))
+                            .executes(ctx -> setBoxHeight(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "height")))
+                        )
+                    )
+                )
+
+                // /npc settitleheight <entity> <height>
+                .then(CommandManager.literal("settitleheight")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("height", IntegerArgumentType.integer(16, 48))
+                            .executes(ctx -> setTitleHeight(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "height")))
+                        )
+                    )
+                )
+
+                // /npc setboxpadding <entity> <padding>
+                .then(CommandManager.literal("setboxpadding")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("padding", IntegerArgumentType.integer(0, 30))
+                            .executes(ctx -> setBoxPadding(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "padding")))
+                        )
+                    )
+                )
+
+                // /npc setportraitsize <entity> <size>
+                .then(CommandManager.literal("setportraitsize")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("size", IntegerArgumentType.integer(16, 80))
+                            .executes(ctx -> setPortraitSize(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "size")))
+                        )
+                    )
+                )
+
                 // /npc setheadtracking <entity> <true|false>
                 .then(CommandManager.literal("setheadtracking")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -259,6 +357,16 @@ public class DialogCommand {
                                 EntityArgumentType.getEntity(ctx, "target"),
                                 StringArgumentType.getString(ctx, "data")))
                         )
+                    )
+                )
+
+                // /npc setname <entity> <name>
+                // Sets the NPC's custom name (displayed above head in dialog)
+                .then(CommandManager.literal("setname")
+                    .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                        .executes(ctx -> setNpcName(ctx,
+                            EntityArgumentType.getEntity(ctx, "target"),
+                            StringArgumentType.getString(ctx, "name")))
                     )
                 )
 
@@ -350,16 +458,36 @@ public class DialogCommand {
     }
 
     private static int addOption(CommandContext<ServerCommandSource> ctx, Entity entity,
-                                  String label, String command) {
+                                  String label, String command, String sound, String particle, int particleCount) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
-        npc.addDialogOption(new DialogNpcEntity.DialogOption(label, command));
+
+        // Validate sound if provided
+        String validSound = sound;
+        if (sound != null && !sound.isEmpty()) {
+            var soundId = net.minecraft.util.Identifier.tryParse(sound);
+            if (soundId == null || net.minecraft.registry.Registries.SOUND_EVENT.get(soundId) == null) {
+                ctx.getSource().sendError(Text.literal("§cInvalid sound ID: §7" + sound));
+                return 0;
+            }
+        }
+
+        // Validate particle if provided
+        String validParticle = particle;
+        if (particle != null && !particle.isEmpty()) {
+            var particleId = net.minecraft.util.Identifier.tryParse(particle);
+            if (particleId == null || net.minecraft.registry.Registries.PARTICLE_TYPE.get(particleId) == null) {
+                ctx.getSource().sendError(Text.literal("§cInvalid particle type: §7" + particle));
+                return 0;
+            }
+        }
+
+        npc.addDialogOption(new DialogNpcEntity.DialogOption(label, command, validSound, validParticle, particleCount));
         int idx = npc.getDialogOptions().size() - 1;
-        ctx.getSource().sendFeedback(
-            () -> Text.literal("§aOption added at index §e" + idx
-                + "§a: §f[" + label + "] §7→ " + command),
-            false
-        );
+        StringBuilder feedback = new StringBuilder("§aOption added at index §e" + idx + "§a: §f[" + label + "] §7→ " + command);
+        if (validSound != null && !validSound.isEmpty()) feedback.append(" §7| Sound: §e").append(validSound);
+        if (validParticle != null && !validParticle.isEmpty()) feedback.append(" §7| Particles: §e").append(validParticle).append(" §7(§e").append(particleCount).append("§7)");
+        ctx.getSource().sendFeedback(() -> Text.literal(feedback.toString()), false);
         return 1;
     }
 
@@ -469,6 +597,46 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setBoxWidth(CommandContext<ServerCommandSource> ctx, Entity entity, int width) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setBoxWidth(width);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aDialog box width set to: §e" + width + "px"), false);
+        return 1;
+    }
+
+    private static int setBoxHeight(CommandContext<ServerCommandSource> ctx, Entity entity, int height) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setBoxHeight(height);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aDialog box height set to: §e" + height + (height == 0 ? " (auto)" : "px")), false);
+        return 1;
+    }
+
+    private static int setTitleHeight(CommandContext<ServerCommandSource> ctx, Entity entity, int height) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setTitleHeight(height);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aTitle bar height set to: §e" + height + "px"), false);
+        return 1;
+    }
+
+    private static int setBoxPadding(CommandContext<ServerCommandSource> ctx, Entity entity, int padding) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setBoxPadding(padding);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aDialog box padding set to: §e" + padding + "px"), false);
+        return 1;
+    }
+
+    private static int setPortraitSize(CommandContext<ServerCommandSource> ctx, Entity entity, int size) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setPortraitSize(size);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aPortrait size set to: §e" + size + "x" + size), false);
+        return 1;
+    }
+
     private static int setHeadTracking(CommandContext<ServerCommandSource> ctx, Entity entity, String enabled) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -537,6 +705,14 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setNpcName(CommandContext<ServerCommandSource> ctx, Entity entity, String name) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setCustomName(Text.literal(name));
+        ctx.getSource().sendFeedback(() -> Text.literal("§aNPC name set to: §e" + name), false);
+        return 1;
+    }
+
     private static int setColor(CommandContext<ServerCommandSource> ctx, Entity entity, String colorName, String colorTarget) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
@@ -583,6 +759,7 @@ public class DialogCommand {
         sb.append("§7UUID:          §f").append(npc.getUuidAsString()).append("\n");
         sb.append("§7Title:         §e").append(npc.getDialogTitle()).append("\n");
         sb.append("§7Text:          §f").append(npc.getDialogText()).append("\n");
+        sb.append("§7Name:          §e").append(npc.getCustomName() != null ? npc.getCustomName().getString() : "(none)").append("\n");
         sb.append("§7Texture:       §f").append(npc.getNpcTexture()).append("\n");
         sb.append(String.format("§7BG Color:      §f0x%08X\n", npc.getBackgroundColor()));
         sb.append(String.format("§7Title Bar:     §f0x%08X\n", npc.getTitleColor()));
@@ -590,6 +767,12 @@ public class DialogCommand {
         sb.append(String.format("§7Border:        §f0x%08X\n", npc.getBorderColor()));
         sb.append("§7Btn Width:     §e").append(npc.getButtonWidth()).append("\n");
         sb.append("§7Options Height:§e").append(npc.getOptionsHeight() == 0 ? "auto" : npc.getOptionsHeight() + "px").append("\n");
+        // Modal layout
+        sb.append("§7Box Width:     §e").append(npc.getBoxWidth()).append("px\n");
+        sb.append("§7Box Height:    §e").append(npc.getBoxHeight() == 0 ? "auto" : npc.getBoxHeight() + "px").append("\n");
+        sb.append("§7Title Height:  §e").append(npc.getTitleHeight()).append("px\n");
+        sb.append("§7Box Padding:   §e").append(npc.getBoxPadding()).append("px\n");
+        sb.append("§7Portrait Size: §e").append(npc.getPortraitSize()).append("x").append(npc.getPortraitSize()).append("\n");
         // Behavior flags
         sb.append("§7Head Tracking: ").append(npc.isHeadTracking() ? "§aYes" : "§cNo").append("\n");
         sb.append("§7Body Rotation: ").append(npc.isBodyRotation() ? "§aYes" : "§cNo").append("\n");
