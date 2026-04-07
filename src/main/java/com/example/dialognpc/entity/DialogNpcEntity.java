@@ -29,6 +29,14 @@ public class DialogNpcEntity extends PathAwareEntity {
     private String npcTexture  = "minecraft:textures/entity/player/wide/steve.png";
     private final List<DialogOption> options = new ArrayList<>();
 
+    // Dialog customization
+    private int backgroundColor = 0xFF1A1A2E;
+    private int titleColor    = 0xFF2D2D5A;
+    private int buttonWidth   = 180;
+    private int borderColor   = 0xFF404080;
+    private int titleTextColor = 0xFFFFD966;
+    private int optionsHeight = 0; // 0 = auto
+
     public DialogNpcEntity(EntityType<? extends DialogNpcEntity> type, World world) {
         super(type, world);
         this.setInvulnerable(true);
@@ -69,6 +77,12 @@ public class DialogNpcEntity extends PathAwareEntity {
         nbt.putString("DialogTitle", dialogTitle);
         nbt.putString("DialogText",  dialogText);
         nbt.putString("NpcTexture",  npcTexture);
+        nbt.putInt("BackgroundColor", backgroundColor);
+        nbt.putInt("TitleColor", titleColor);
+        nbt.putInt("ButtonWidth", buttonWidth);
+        nbt.putInt("BorderColor", borderColor);
+        nbt.putInt("TitleTextColor", titleTextColor);
+        nbt.putInt("OptionsHeight", optionsHeight);
         NbtList list = new NbtList();
         for (DialogOption opt : options) {
             NbtCompound c = new NbtCompound();
@@ -85,6 +99,12 @@ public class DialogNpcEntity extends PathAwareEntity {
         if (nbt.contains("DialogTitle")) dialogTitle = nbt.getString("DialogTitle");
         if (nbt.contains("DialogText"))  dialogText  = nbt.getString("DialogText");
         if (nbt.contains("NpcTexture"))  npcTexture  = nbt.getString("NpcTexture");
+        if (nbt.contains("BackgroundColor")) backgroundColor = nbt.getInt("BackgroundColor");
+        if (nbt.contains("TitleColor"))    titleColor    = nbt.getInt("TitleColor");
+        if (nbt.contains("ButtonWidth"))   buttonWidth   = nbt.getInt("ButtonWidth");
+        if (nbt.contains("BorderColor"))   borderColor   = nbt.getInt("BorderColor");
+        if (nbt.contains("TitleTextColor")) titleTextColor = nbt.getInt("TitleTextColor");
+        if (nbt.contains("OptionsHeight")) optionsHeight = nbt.getInt("OptionsHeight");
         options.clear();
         if (nbt.contains("DialogOptions", NbtElement.LIST_TYPE)) {
             NbtList list = nbt.getList("DialogOptions", NbtElement.COMPOUND_TYPE);
@@ -106,4 +126,18 @@ public class DialogNpcEntity extends PathAwareEntity {
     public List<DialogOption> getDialogOptions()  { return options; }
     public void addDialogOption(DialogOption opt) { options.add(opt); }
     public void clearDialogOptions()              { options.clear(); }
+
+    // Customization getters/setters
+    public int    getBackgroundColor()         { return backgroundColor; }
+    public void   setBackgroundColor(int c)    { this.backgroundColor = c; }
+    public int    getTitleColor()              { return titleColor; }
+    public void   setTitleColor(int c)         { this.titleColor = c; }
+    public int    getButtonWidth()             { return buttonWidth; }
+    public void   setButtonWidth(int w)        { this.buttonWidth = w; }
+    public int    getBorderColor()             { return borderColor; }
+    public void   setBorderColor(int c)        { this.borderColor = c; }
+    public int    getTitleTextColor()          { return titleTextColor; }
+    public void   setTitleTextColor(int c)     { this.titleTextColor = c; }
+    public int    getOptionsHeight()           { return optionsHeight; }
+    public void   setOptionsHeight(int h)      { this.optionsHeight = h; }
 }

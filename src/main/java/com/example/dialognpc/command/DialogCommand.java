@@ -115,6 +115,74 @@ public class DialogCommand {
                     )
                 )
 
+                // /npc setbgcolor <entity> <color>
+                // Color format: 0xAARRGGBB (hex)
+                .then(CommandManager.literal("setbgcolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
+                            .executes(ctx -> setBackgroundColor(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "color")))
+                        )
+                    )
+                )
+
+                // /npc settitlecolor <entity> <color>
+                // Color format: 0xAARRGGBB (hex)
+                .then(CommandManager.literal("settitlecolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
+                            .executes(ctx -> setTitleColor(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "color")))
+                        )
+                    )
+                )
+
+                // /npc setbtnwidth <entity> <width>
+                .then(CommandManager.literal("setbtnwidth")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("width", IntegerArgumentType.integer(50, 400))
+                            .executes(ctx -> setButtonWidth(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "width")))
+                        )
+                    )
+                )
+
+                // /npc setbordercolor <entity> <color>
+                .then(CommandManager.literal("setbordercolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
+                            .executes(ctx -> setBorderColor(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "color")))
+                        )
+                    )
+                )
+
+                // /npc settitletextcolor <entity> <color>
+                .then(CommandManager.literal("settitletextcolor")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("color", IntegerArgumentType.integer())
+                            .executes(ctx -> setTitleTextColor(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "color")))
+                        )
+                    )
+                )
+
+                // /npc setoptionsheight <entity> <height>
+                .then(CommandManager.literal("setoptionsheight")
+                    .then(CommandManager.argument("target", EntityArgumentType.entity())
+                        .then(CommandManager.argument("height", IntegerArgumentType.integer(0, 500))
+                            .executes(ctx -> setOptionsHeight(ctx,
+                                EntityArgumentType.getEntity(ctx, "target"),
+                                IntegerArgumentType.getInteger(ctx, "height")))
+                        )
+                    )
+                )
+
                 // /npc info <entity>
                 .then(CommandManager.literal("info")
                     .then(CommandManager.argument("target", EntityArgumentType.entity())
@@ -220,16 +288,70 @@ public class DialogCommand {
         return 1;
     }
 
+    private static int setBackgroundColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setBackgroundColor(color);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBackground color set to: §70x%08X", color)), false);
+        return 1;
+    }
+
+    private static int setTitleColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setTitleColor(color);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle bar color set to: §70x%08X", color)), false);
+        return 1;
+    }
+
+    private static int setButtonWidth(CommandContext<ServerCommandSource> ctx, Entity entity, int width) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setButtonWidth(width);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aButton width set to: §e" + width), false);
+        return 1;
+    }
+
+    private static int setBorderColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setBorderColor(color);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aBorder color set to: §70x%08X", color)), false);
+        return 1;
+    }
+
+    private static int setTitleTextColor(CommandContext<ServerCommandSource> ctx, Entity entity, int color) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setTitleTextColor(color);
+        ctx.getSource().sendFeedback(() -> Text.literal(String.format("§aTitle text color set to: §70x%08X", color)), false);
+        return 1;
+    }
+
+    private static int setOptionsHeight(CommandContext<ServerCommandSource> ctx, Entity entity, int height) {
+        DialogNpcEntity npc = asNpc(ctx, entity);
+        if (npc == null) return 0;
+        npc.setOptionsHeight(height);
+        ctx.getSource().sendFeedback(() -> Text.literal("§aOptions area height set to: §e" + height + (height == 0 ? " (auto)" : "px")), false);
+        return 1;
+    }
+
     private static int showInfo(CommandContext<ServerCommandSource> ctx, Entity entity) {
         DialogNpcEntity npc = asNpc(ctx, entity);
         if (npc == null) return 0;
 
         StringBuilder sb = new StringBuilder();
         sb.append("§6=== Dialog NPC Info ===\n");
-        sb.append("§7UUID:    §f").append(npc.getUuidAsString()).append("\n");
-        sb.append("§7Title:   §e").append(npc.getDialogTitle()).append("\n");
-        sb.append("§7Text:    §f").append(npc.getDialogText()).append("\n");
-        sb.append("§7Texture: §f").append(npc.getNpcTexture()).append("\n");
+        sb.append("§7UUID:          §f").append(npc.getUuidAsString()).append("\n");
+        sb.append("§7Title:         §e").append(npc.getDialogTitle()).append("\n");
+        sb.append("§7Text:          §f").append(npc.getDialogText()).append("\n");
+        sb.append("§7Texture:       §f").append(npc.getNpcTexture()).append("\n");
+        sb.append(String.format("§7BG Color:      §f0x%08X\n", npc.getBackgroundColor()));
+        sb.append(String.format("§7Title Bar:     §f0x%08X\n", npc.getTitleColor()));
+        sb.append(String.format("§7Title Text:    §f0x%08X\n", npc.getTitleTextColor()));
+        sb.append(String.format("§7Border:        §f0x%08X\n", npc.getBorderColor()));
+        sb.append("§7Btn Width:     §e").append(npc.getButtonWidth()).append("\n");
+        sb.append("§7Options Height:§e").append(npc.getOptionsHeight() == 0 ? "auto" : npc.getOptionsHeight() + "px").append("\n");
         sb.append("§7Options (").append(npc.getDialogOptions().size()).append("):\n");
         for (int i = 0; i < npc.getDialogOptions().size(); i++) {
             DialogNpcEntity.DialogOption opt = npc.getDialogOptions().get(i);

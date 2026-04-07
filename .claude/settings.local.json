@@ -16,7 +16,8 @@
       "Bash(gradle build:*)",
       "Bash(chmod +x gradlew)",
       "Bash(git push:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(./gradlew clean:*)"
     ]
   }
 }

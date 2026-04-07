@@ -32,6 +32,7 @@ public class DialogScreen extends Screen {
     private static final int DEFAULT_BORDER_COLOR = 0xFF404080;
     private static final int COLOR_TITLE_TXT     = 0xFFFFD966;
     private static final int COLOR_TEXT          = 0xFFFFFFFF;
+    private static final int DEFAULT_OPTIONS_HEIGHT = 0; // auto
 
     // ── Data ─────────────────────────────────────────────────────────────
     private final UUID         npcUuid;
@@ -42,6 +43,9 @@ public class DialogScreen extends Screen {
     private final int          backgroundColor;
     private final int          titleColor;
     private final int          buttonWidth;
+    private final int          borderColor;
+    private final int          titleTextColor;
+    private final int          optionsHeight;
 
     // Button positions
     private int buttonBoxX;
@@ -49,16 +53,20 @@ public class DialogScreen extends Screen {
 
     public DialogScreen(UUID npcUuid, String dialogTitle, String dialogText,
                         String npcTexture, List<String> optionLabels,
-                        int backgroundColor, int titleColor, int buttonWidth) {
+                        int backgroundColor, int titleColor, int buttonWidth,
+                        int borderColor, int titleTextColor, int optionsHeight) {
         super(Text.literal(dialogTitle));
-        this.npcUuid         = npcUuid;
-        this.dialogTitle     = dialogTitle;
-        this.dialogText      = dialogText;
-        this.npcTexture      = parseTexture(npcTexture);
-        this.optionLabels    = optionLabels;
-        this.backgroundColor = backgroundColor;
-        this.titleColor      = titleColor;
-        this.buttonWidth     = buttonWidth;
+        this.npcUuid          = npcUuid;
+        this.dialogTitle      = dialogTitle;
+        this.dialogText       = dialogText;
+        this.npcTexture       = parseTexture(npcTexture);
+        this.optionLabels     = optionLabels;
+        this.backgroundColor  = backgroundColor;
+        this.titleColor       = titleColor;
+        this.buttonWidth      = buttonWidth;
+        this.borderColor      = borderColor;
+        this.titleTextColor   = titleTextColor;
+        this.optionsHeight    = optionsHeight;
     }
 
     private static Identifier parseTexture(String tex) {
@@ -73,6 +81,9 @@ public class DialogScreen extends Screen {
 
         // Store box position for custom rendering
         buttonBoxX = boxX;
+        // Calculate options area height (custom or auto)
+        int optionsAreaH = optionsHeight > 0 ? optionsHeight :
+            (optionLabels.size() + 1) * (BTN_HEIGHT + BTN_GAP) + BTN_GAP;
         buttonBoxY = boxTop + TITLE_HEIGHT + TEXT_BOX_H + BOX_PADDING * 2 + 4;
 
         // Center buttons within the box - use DEFAULT_BTN_WIDTH if buttonWidth not set
@@ -133,10 +144,10 @@ public class DialogScreen extends Screen {
 
     private void drawModalBorder(DrawContext ctx, int boxX, int boxTop, int fullHeight) {
         // Border - brighter outline (1 pixel on each side)
-        ctx.fill(boxX - 1, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop, 0xFF404080);
-        ctx.fill(boxX - 1, boxTop + fullHeight, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, 0xFF404080);
-        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + fullHeight + 1, 0xFF404080);
-        ctx.fill(boxX + DEFAULT_BOX_WIDTH, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, 0xFF404080);
+        ctx.fill(boxX - 1, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop, borderColor);
+        ctx.fill(boxX - 1, boxTop + fullHeight, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, borderColor);
+        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + fullHeight + 1, borderColor);
+        ctx.fill(boxX + DEFAULT_BOX_WIDTH, boxTop - 1, boxX + DEFAULT_BOX_WIDTH + 1, boxTop + fullHeight + 1, borderColor);
     }
 
     private void drawDialogForeground(DrawContext ctx, int boxX, int boxTop) {
@@ -144,7 +155,7 @@ public class DialogScreen extends Screen {
 
         // Title text - centered with shadow
         ctx.drawCenteredTextWithShadow(this.textRenderer, dialogTitle,
-            cx, boxTop + (TITLE_HEIGHT - 8) / 2, COLOR_TITLE_TXT);
+            cx, boxTop + (TITLE_HEIGHT - 8) / 2, titleTextColor);
 
         // Portrait background
         int px = boxX + BOX_PADDING;

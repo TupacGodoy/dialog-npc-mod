@@ -32,7 +32,13 @@ public class ModPackets {
         String title,
         String text,
         String texture,
-        List<String> labels
+        List<String> labels,
+        int    backgroundColor,
+        int    titleColor,
+        int    buttonWidth,
+        int    borderColor,
+        int    titleTextColor,
+        int    optionsHeight
     ) implements CustomPayload {
 
         public static final CustomPayload.Id<OpenDialogPayload> ID =
@@ -49,7 +55,13 @@ public class ModPackets {
                     int count = buf.readVarInt();
                     List<String> labels = new ArrayList<>(count);
                     for (int i = 0; i < count; i++) labels.add(buf.readString());
-                    return new OpenDialogPayload(uuid, title, text, texture, labels);
+                    int bgColor = buf.readInt();
+                    int titleColor = buf.readInt();
+                    int btnWidth = buf.readInt();
+                    int borderColor = buf.readInt();
+                    int titleTextColor = buf.readInt();
+                    int optionsHeight = buf.readInt();
+                    return new OpenDialogPayload(uuid, title, text, texture, labels, bgColor, titleColor, btnWidth, borderColor, titleTextColor, optionsHeight);
                 }
 
                 @Override
@@ -60,6 +72,12 @@ public class ModPackets {
                     buf.writeString(p.texture());
                     buf.writeVarInt(p.labels().size());
                     p.labels().forEach(buf::writeString);
+                    buf.writeInt(p.backgroundColor());
+                    buf.writeInt(p.titleColor());
+                    buf.writeInt(p.buttonWidth());
+                    buf.writeInt(p.borderColor());
+                    buf.writeInt(p.titleTextColor());
+                    buf.writeInt(p.optionsHeight());
                 }
             };
 
@@ -133,7 +151,13 @@ public class ModPackets {
                             payload.title(),
                             payload.text(),
                             payload.texture(),
-                            payload.labels()
+                            payload.labels(),
+                            payload.backgroundColor(),
+                            payload.titleColor(),
+                            payload.buttonWidth(),
+                            payload.borderColor(),
+                            payload.titleTextColor(),
+                            payload.optionsHeight()
                         )
                     )
                 )
@@ -152,7 +176,13 @@ public class ModPackets {
             npc.getDialogTitle(),
             npc.getDialogText(),
             npc.getNpcTexture(),
-            labels
+            labels,
+            npc.getBackgroundColor(),
+            npc.getTitleColor(),
+            npc.getButtonWidth(),
+            npc.getBorderColor(),
+            npc.getTitleTextColor(),
+            npc.getOptionsHeight()
         ));
     }
 

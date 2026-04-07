@@ -70,6 +70,24 @@ You can also use textures from your own resource pack:
 Place `nurse_joy.png` (64×64 player skin format) at:
 `assets/dialognpc/textures/entity/nurse_joy.png` inside a resource pack.
 
+### Set dialog background color
+```
+/npc setbgcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF1A1A2E
+```
+Color format: `0xAARRGGBB` (hex). Example: `0xFF1A1A2E` = dark blue-gray.
+
+### Set title bar color
+```
+/npc settitlecolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF2D2D5A
+```
+Color format: `0xAARRGGBB` (hex). Example: `0xFF2D2D5A` = purple-blue.
+
+### Set button width
+```
+/npc setbtnwidth @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 200
+```
+Width in pixels (50-400). Buttons are centered automatically.
+
 ### Show NPC info
 ```
 /npc info @e[type=dialognpc:dialog_npc,sort=nearest,limit=1]
