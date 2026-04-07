@@ -45,9 +45,17 @@ Spawns an NPC at your feet. Prints its UUID in chat.
 /npc addoption @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] "Random Tip"       say Did you know Pikachu hates being in its Poke Ball?
 /npc addoption @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] "Give Potion"      give @p minecraft:potion 1
 ```
+With sound and particle effects:
+```
+/npc addoption @e[...] "Heal Party" "pokeheal @p" minecraft:entity.player.levelup minecraft:happy_villager 10
+```
 - The **label** (first arg) supports spaces if you quote it: `"Heal Party"`
 - The **command** (rest of line) is executed server-side with level-2 permissions
   when the player clicks that button — the client never sees the command text.
+- **Sound**: Optional sound ID (TAB autocompletion shows all sounds including from mods)
+- **Particle**: Optional particle type (TAB autocompletion shows all particles)
+- **Particle count**: Number of particles to spawn (0-100)
+- **Translation key**: Optional translation key for the label (last argument)
 
 ### Remove option by index
 ```
@@ -100,15 +108,24 @@ Use base64 encoded image data:
 
 ### Set dialog background color
 ```
-/npc setbgcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF1A1A2E
+/npc setbgcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <color>
 ```
-Color format: `0xAARRGGBB` (hex). Example: `0xFF1A1A2E` = dark blue-gray.
+Color can be:
+- **Color name**: `red`, `blue`, `green`, `yellow`, `black`, `white`, `dark_blue`, `dark_green`, `dark_aqua`, `dark_red`, `dark_purple`, `gold`, `gray`, `dark_gray`, `aqua`, `light_purple`
+- **Hex value**: `0xAARRGGBB`, `#RRGGBB`, or `RRGGBB`
+
+Examples:
+```
+/npc setbgcolor @e[...] red
+/npc setbgcolor @e[...] 0xFF1A1A2E
+/npc setbgcolor @e[...] #1A1A2E
+```
 
 ### Set title bar color
 ```
-/npc settitlecolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF2D2D5A
+/npc settitlecolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <color>
 ```
-Color format: `0xAARRGGBB` (hex). Example: `0xFF2D2D5A` = purple-blue.
+Same format as `setbgcolor`.
 
 ### Set button width
 ```
@@ -118,21 +135,26 @@ Width in pixels (50-400). Buttons are centered automatically.
 
 ### Set border color
 ```
-/npc setbordercolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFF404080
+/npc setbordercolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <color>
 ```
-Color format: `0xAARRGGBB` (hex). Example: `0xFF404080` = purple-blue border.
+Same format as `setbgcolor`.
 
 ### Set title text color
 ```
-/npc settitletextcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0xFFFFD966
+/npc settitletextcolor @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <color>
 ```
-Color format: `0xAARRGGBB` (hex). Example: `0xFFFFD966` = yellow-gold text.
+Same format as `setbgcolor`.
 
 ### Set options area height
 ```
-/npc setoptionsheight @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] 0
+/npc setoptionsheight @e[type=dialognpc:dialog_npc,sort=nearest,limit=1] <height>
 ```
-Height in pixels (0 = auto, adjusts to fit buttons). Use custom values to add extra space.
+Height in pixels (0 = auto, adjusts to fit buttons). Use custom values to add extra space or distribute buttons evenly.
+
+Example with custom height:
+```
+/npc setoptionsheight @e[...] 200
+```
 
 ### Configure NPC behavior
 Control how the NPC interacts with players:
