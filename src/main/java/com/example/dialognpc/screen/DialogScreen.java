@@ -12,6 +12,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,6 @@ public class DialogScreen extends Screen {
     // ── Layout Constants ──────────────────────────────────────────────────
     private static final int BTN_HEIGHT        = 20;
     private static final int BTN_GAP           = 4;
-    private static final int TEXT_BOX_H        = 90;
     private static final int DEFAULT_BTN_WIDTH = 180;
 
     // ── Default Colors ───────────────────────────────────────────────────
@@ -56,13 +56,18 @@ public class DialogScreen extends Screen {
     private final int titleColor;
     private final int borderColor;
     private final int titleTextColor;
+    private final int optionTextColor;
 
     // Texture
     private Identifier loadedTexture;
 
-    // Button positions
-    private int buttonBoxX;
+    // Positions
+    private int screenCenterX;
+    private int dialogBoxX;
+    private int dialogBoxY;
     private int buttonBoxY;
+    private int npcRenderX;
+    private int npcRenderY;
 
     public DialogScreen(UUID npcUuid, String dialogTitle, String dialogTitleKey,
                         String dialogText, String dialogTextKey,
@@ -73,7 +78,7 @@ public class DialogScreen extends Screen {
                         int backgroundColor, int titleColor, int buttonWidth,
                         int borderColor, int titleTextColor, int optionsHeight,
                         int boxWidth, int boxHeight, int titleHeight,
-                        int boxPadding, int portraitSize) {
+                        int boxPadding, int portraitSize, int optionTextColor) {
         super(Text.literal(dialogTitle));
         this.npcUuid               = npcUuid;
         this.dialogTitle           = dialogTitle;
@@ -98,6 +103,7 @@ public class DialogScreen extends Screen {
         this.titleHeight           = titleHeight > 0 ? titleHeight : 24;
         this.boxPadding            = boxPadding > 0 ? boxPadding : 10;
         this.portraitSize          = portraitSize > 0 ? portraitSize : 40;
+        this.optionTextColor       = optionTextColor;
 
         // Load texture using shared TextureLoader utility
         this.loadedTexture = TextureLoader.loadTexture(
@@ -109,18 +115,24 @@ public class DialogScreen extends Screen {
 
     @Override
     protected void init() {
-        int boxX   = this.width  / 2 - boxWidth / 2;
-        int boxTop = calcBoxTop();
+        this.screenCenterX = this.width / 2;
 
-        // Store box position for custom rendering
-        buttonBoxX = boxX;
+        // Calculate dialog box position (centered horizontally, upper portion of screen)
+        this.dialogBoxX = this.screenCenterX - boxWidth / 2;
+        this.dialogBoxY = this.height / 6; // Position in upper portion
 
-        // Position button box below dialog text
-        buttonBoxY = boxTop + titleHeight + TEXT_BOX_H + boxPadding * 2 + 4;
+        // Calculate dialog box total height for positioning
+        int dialogBoxTotalHeight = calculateDialogBoxHeight();
+
+        // Calculate NPC render position (to the left of dialog box, facing the text)
+        this.npcRenderX = this.dialogBoxX - this.portraitSize - 15; // 15px gap (close to speech bubble)
+        this.npcRenderY = this.dialogBoxY + dialogBoxTotalHeight / 2 - this.portraitSize / 2; // Center vertically with dialog
+
+        // Calculate button box position (below dialog box)
+        this.buttonBoxY = this.dialogBoxY + dialogBoxTotalHeight + 15; // 15px gap between box and buttons
 
         // Center buttons within the box
         int effectiveBtnWidth = buttonWidth > 0 ? buttonWidth : DEFAULT_BTN_WIDTH;
-        int btnOffset = (boxWidth - effectiveBtnWidth) / 2;
 
         // Calculate button spacing based on optionsHeight
         int totalButtons = optionLabels.size() + 1; // +1 for close button
@@ -150,104 +162,151 @@ public class DialogScreen extends Screen {
             Text buttonText = !labelKey.isEmpty() ? Text.translatable(labelKey) : Text.literal(optionLabels.get(i));
 
             this.addDrawableChild(
-                ButtonWidget.builder(buttonText, btn -> {
-                    playOptionSound(soundId);
-                    spawnOptionParticles(particleType, particleCount);
-                    ModPackets.sendRunOption(npcUuid, idx);
-                    this.close();
-                })
-                .dimensions(buttonBoxX + btnOffset, buttonBoxY + i * (BTN_HEIGHT + gap), effectiveBtnWidth, BTN_HEIGHT)
-                .build()
+                new ColoredButtonWidget(
+                    this.screenCenterX - effectiveBtnWidth / 2,
+                    this.buttonBoxY + i * (BTN_HEIGHT + gap),
+                    effectiveBtnWidth,
+                    BTN_HEIGHT,
+                    buttonText,
+                    btn -> {
+                        playOptionSound(soundId);
+                        spawnOptionParticles(particleType, particleCount);
+                        ModPackets.sendRunOption(npcUuid, idx);
+                        this.close();
+                    },
+                    optionTextColor
+                )
             );
         }
 
-        int closeBtnY = buttonBoxY + optionLabels.size() * (BTN_HEIGHT + gap);
+        int closeBtnY = this.buttonBoxY + optionLabels.size() * (BTN_HEIGHT + gap);
         this.addDrawableChild(
-            ButtonWidget.builder(Text.translatable("dialognpc.dialog.close"), btn -> this.close())
-                .dimensions(buttonBoxX + btnOffset, closeBtnY, effectiveBtnWidth, BTN_HEIGHT)
-                .build()
+            new ColoredButtonWidget(
+                this.screenCenterX - effectiveBtnWidth / 2,
+                closeBtnY,
+                effectiveBtnWidth,
+                BTN_HEIGHT,
+                Text.translatable("dialognpc.dialog.close"),
+                btn -> this.close(),
+                optionTextColor
+            )
         );
+    }
+
+    private int calculateDialogBoxHeight() {
+        // Calculate text content height
+        int maxW = boxWidth - boxPadding * 2;
+        Text textContent = !dialogTextKey.isEmpty() ? Text.translatable(dialogTextKey) : Text.literal(dialogText);
+        List<OrderedText> lines = this.textRenderer.wrapLines(textContent, maxW);
+        int textHeight = lines.size() * (this.textRenderer.fontHeight + 1);
+
+        // Total height: name area + text area + padding
+        int nameHeight = !npcName.isEmpty() || !npcNameKey.isEmpty() ? 16 : 0;
+        return nameHeight + textHeight + boxPadding * 2;
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        int boxX   = buttonBoxX;
-        int boxTop = calcBoxTop();
-
-        // Calculate full modal height using optionsHeight if set
-        int totalButtons = optionLabels.size() + 1;
-        int buttonsH;
-        if (optionsHeight > 0) {
-            buttonsH = optionsHeight;
-        } else {
-            buttonsH = totalButtons * (BTN_HEIGHT + BTN_GAP);
-        }
-        int fullHeight = (buttonBoxY - boxTop) + buttonsH;
-
-        // 1. Draw solid background
-        ctx.fill(boxX, boxTop, boxX + boxWidth, boxTop + fullHeight, backgroundColor);
-
-        // 2. Draw border
-        drawModalBorder(ctx, boxX, boxTop, fullHeight);
-
-        // 3. Draw title bar
-        ctx.fill(boxX, boxTop, boxX + boxWidth, boxTop + titleHeight, titleColor);
-
-        // 4. Draw separator line
-        ctx.fill(boxX, buttonBoxY - 1, boxX + boxWidth, buttonBoxY, borderColor);
-
-        // 5. Draw title, NPC name, portrait and dialog text
-        drawDialogForeground(ctx, boxX, boxTop);
-
-        // 6. Render buttons on top
+        // 1. Render buttons first (so they appear below the dialog box)
         for (var child : this.children()) {
             if (child instanceof net.minecraft.client.gui.Drawable drawable) {
                 drawable.render(ctx, mouseX, mouseY, delta);
             }
         }
-    }
 
-    private void drawModalBorder(DrawContext ctx, int boxX, int boxTop, int fullHeight) {
-        ctx.fill(boxX - 1, boxTop - 1, boxX + boxWidth + 1, boxTop, borderColor);
-        ctx.fill(boxX - 1, boxTop + fullHeight, boxX + boxWidth + 1, boxTop + fullHeight + 1, borderColor);
-        ctx.fill(boxX - 1, boxTop - 1, boxX, boxTop + fullHeight + 1, borderColor);
-        ctx.fill(boxX + boxWidth, boxTop - 1, boxX + boxWidth + 1, boxTop + fullHeight + 1, borderColor);
-    }
+        // 2. Calculate dialog box dimensions
+        int dialogBoxTotalHeight = calculateDialogBoxHeight();
 
-    private void drawDialogForeground(DrawContext ctx, int boxX, int boxTop) {
-        int cx = this.width / 2;
+        // 3. Draw speech bubble tail pointing to NPC
+        drawSpeechBubbleTail(ctx, dialogBoxX, dialogBoxY, dialogBoxTotalHeight);
 
-        // Draw NPC name above head (if set) - use translation key if available
-        int nameY = boxTop + titleHeight + boxPadding - 12;
-        if (!npcName.isEmpty()) {
-            Text nameText = !npcNameKey.isEmpty() ? Text.translatable(npcNameKey) : Text.literal(npcName);
-            int nameWidth = this.textRenderer.getWidth(nameText);
-            int px = boxX + boxPadding;
-            ctx.drawText(this.textRenderer, nameText, px + (portraitSize - nameWidth) / 2, nameY, MinecraftColors.GOLD, true);
+        // 4. Draw solid background for dialog box (sharp corners, no rounding)
+        ctx.fill(dialogBoxX, dialogBoxY, dialogBoxX + boxWidth, dialogBoxY + dialogBoxTotalHeight, backgroundColor);
+
+        // 5. Draw border (sharp rectangular border)
+        drawSharpBorder(ctx, dialogBoxX, dialogBoxY, boxWidth, dialogBoxTotalHeight);
+
+        // 6. Draw NPC name at top of dialog box (if NPC has a name)
+        int yOffset = dialogBoxY;
+        if (!npcName.isEmpty() || !npcNameKey.isEmpty()) {
+            drawNameBar(ctx, dialogBoxX, dialogBoxY, boxWidth);
+            yOffset += 16; // Name bar height
         }
 
-        // Title text - centered with shadow (use translation if available)
-        Text titleText = !dialogTitleKey.isEmpty() ? Text.translatable(dialogTitleKey) : Text.literal(dialogTitle);
-        ctx.drawCenteredTextWithShadow(this.textRenderer, titleText,
-            cx, boxTop + (titleHeight - 8) / 2, titleTextColor);
+        // 7. Draw dialog text content
+        drawDialogText(ctx, dialogBoxX, yOffset, boxWidth, dialogBoxTotalHeight - (yOffset - dialogBoxY));
 
-        // Portrait background
-        int px = boxX + boxPadding;
-        int py = boxTop + titleHeight + boxPadding;
-        ctx.fill(px - 2, py - 2, px + portraitSize + 2, py + portraitSize + 2, 0xFF404080);
-        ctx.fill(px, py, px + portraitSize, py + portraitSize, 0xFF202040);
+        // 8. Render NPC (outside the dialog box, facing the text)
+        renderNPC(ctx);
+    }
 
-        // Draw NPC head texture - use loaded texture (handles player skins correctly)
-        ctx.drawTexture(loadedTexture, px, py, portraitSize, portraitSize, 8, 8, 8, 8, 64, 64);
+    private void renderNPC(DrawContext ctx) {
+        // Draw NPC head texture facing the dialog box
+        int headSize = portraitSize;
+
+        // Draw head background (border color)
+        ctx.fill(npcRenderX - 2, npcRenderY - 2, npcRenderX + headSize + 2, npcRenderY + headSize + 2, borderColor);
+        ctx.fill(npcRenderX, npcRenderY, npcRenderX + headSize, npcRenderY + headSize, backgroundColor);
+
+        // Draw NPC head texture
+        ctx.drawTexture(loadedTexture, npcRenderX, npcRenderY, headSize, headSize, 8, 8, 8, 8, 64, 64);
         // Hat overlay
-        ctx.drawTexture(loadedTexture, px, py, portraitSize, portraitSize, 40, 8, 8, 8, 64, 64);
+        ctx.drawTexture(loadedTexture, npcRenderX, npcRenderY, headSize, headSize, 40, 8, 8, 8, 64, 64);
+    }
 
-        // Dialog text area - to the right of portrait
-        int tx   = px + portraitSize + boxPadding;
-        int ty   = py + 1;
-        int maxW = boxWidth - portraitSize - boxPadding * 3;
+    private void drawSpeechBubbleTail(DrawContext ctx, int x, int y, int height) {
+        // Draw triangular tail pointing from dialog box to NPC (left side)
+        int tailWidth = 10;
+        int tailHeight = 15;
+        int tailY = y + height / 2 - tailHeight / 2;
 
-        // Wrap and draw text line by line (use translation if available)
+        // Fill tail with background color (triangle pointing left)
+        for (int i = 0; i < tailWidth; i++) {
+            int sliceHeight = (i * tailHeight) / tailWidth;
+            int sliceY = tailY + (tailHeight - sliceHeight) / 2;
+            ctx.fill(x - tailWidth + i, sliceY, x - tailWidth + i + 1, sliceY + sliceHeight, backgroundColor);
+        }
+
+        // Draw border around tail
+        for (int i = 0; i < tailWidth; i++) {
+            int sliceHeight = (i * tailHeight) / tailWidth;
+            int sliceY = tailY + (tailHeight - sliceHeight) / 2;
+            // Top border of tail
+            ctx.fill(x - tailWidth + i, sliceY - 1, x - tailWidth + i + 1, sliceY, borderColor);
+            // Bottom border of tail
+            ctx.fill(x - tailWidth + i, sliceY + sliceHeight, x - tailWidth + i + 1, sliceY + sliceHeight + 1, borderColor);
+        }
+        // Left tip border
+        ctx.fill(x - tailWidth - 1, tailY + tailHeight / 2 - 1, x - tailWidth, tailY + tailHeight / 2 + 1, borderColor);
+    }
+
+    private void drawSharpBorder(DrawContext ctx, int x, int y, int width, int height) {
+        // Top border
+        ctx.fill(x - 1, y - 1, x + width + 1, y, borderColor);
+        // Bottom border
+        ctx.fill(x - 1, y + height, x + width + 1, y + height + 1, borderColor);
+        // Left border
+        ctx.fill(x - 1, y - 1, x, y + height + 1, borderColor);
+        // Right border
+        ctx.fill(x + width, y - 1, x + width + 1, y + height + 1, borderColor);
+    }
+
+    private void drawNameBar(DrawContext ctx, int x, int y, int width) {
+        // Draw name bar background (using titleColor)
+        ctx.fill(x, y, x + width, y + 16, titleColor);
+
+        // Draw NPC name centered in the bar
+        Text nameText = !npcNameKey.isEmpty() ? Text.translatable(npcNameKey) : Text.literal(npcName);
+        int nameY = y + (16 - 8) / 2;
+        ctx.drawCenteredTextWithShadow(this.textRenderer, nameText, x + width / 2, nameY, titleTextColor);
+    }
+
+    private void drawDialogText(DrawContext ctx, int x, int y, int width, int height) {
+        int tx = x + boxPadding;
+        int ty = y + boxPadding;
+        int maxW = width - boxPadding * 2;
+
+        // Wrap and draw text line by line
         Text textContent = !dialogTextKey.isEmpty() ? Text.translatable(dialogTextKey) : Text.literal(dialogText);
         List<OrderedText> lines = this.textRenderer.wrapLines(textContent, maxW);
         for (OrderedText line : lines) {
@@ -257,18 +316,6 @@ public class DialogScreen extends Screen {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
-
-    private int calcBoxTop() {
-        int totalButtons = optionLabels.size() + 1;
-        int buttonsH;
-        if (optionsHeight > 0) {
-            buttonsH = optionsHeight;
-        } else {
-            buttonsH = totalButtons * (BTN_HEIGHT + BTN_GAP);
-        }
-        int dialogH  = titleHeight + TEXT_BOX_H + boxPadding * 2;
-        return this.height / 2 - (dialogH + buttonsH + 4) / 2;
-    }
 
     private void playOptionSound(String soundId) {
         if (soundId == null || soundId.isEmpty()) return;
@@ -309,4 +356,33 @@ public class DialogScreen extends Screen {
 
     @Override
     public boolean shouldPause() { return false; }
+
+    // ── Custom Button Widget with colored text ────────────────────────────
+
+    public class ColoredButtonWidget extends ButtonWidget {
+        private final int textColor;
+
+        public ColoredButtonWidget(int x, int y, int width, int height, Text message, PressAction onPress, int textColor) {
+            super(x, y, width, height, message, onPress, DEFAULT_NARRATION_SUPPLIER);
+            this.textColor = textColor;
+        }
+
+        @Override
+        public void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+            // Draw button background
+            ctx.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height,
+                this.isHovered() ? 0xFF404040 : 0xFF202020);
+
+            // Draw border
+            ctx.fill(this.getX() - 1, this.getY() - 1, this.getX() + this.width + 1, this.getY(), 0xFF606060);
+            ctx.fill(this.getX() - 1, this.getY() + this.height, this.getX() + this.width + 1, this.getY() + this.height + 1, 0xFF606060);
+            ctx.fill(this.getX() - 1, this.getY() - 1, this.getX(), this.getY() + this.height + 1, 0xFF606060);
+            ctx.fill(this.getX() + this.width, this.getY() - 1, this.getX() + this.width + 1, this.getY() + this.height + 1, 0xFF606060);
+
+            // Draw centered text with custom color
+            int textX = this.getX() + this.width / 2 - textRenderer.getWidth(this.getMessage()) / 2;
+            int textY = this.getY() + (this.height - 8) / 2;
+            ctx.drawText(textRenderer, this.getMessage(), textX, textY, this.textColor, true);
+        }
+    }
 }
