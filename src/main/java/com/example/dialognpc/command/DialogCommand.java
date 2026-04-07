@@ -107,8 +107,8 @@ public class DialogCommand {
                                     null, null, 0, null))
                                 .then(CommandManager.argument("sound", StringArgumentType.string())
                                     .suggests((ctx, builder) -> {
-                                        net.minecraft.registry.Registries.SOUND_EVENT.getIndexedEntries().forEach(entry -> {
-                                            entry.getKey().ifPresent(key -> builder.suggest(key.getValue().toString()));
+                                        net.minecraft.registry.Registries.SOUND_EVENT.getEntrySet().forEach(entry -> {
+                                            builder.suggest(entry.getKey().getValue().toString());
                                         });
                                         return builder.buildFuture();
                                     })
@@ -120,8 +120,8 @@ public class DialogCommand {
                                         null, 0, null))
                                     .then(CommandManager.argument("particle", StringArgumentType.string())
                                         .suggests((ctx, builder) -> {
-                                            net.minecraft.registry.Registries.PARTICLE_TYPE.getIndexedEntries().forEach(entry -> {
-                                                entry.getKey().ifPresent(key -> builder.suggest(key.getValue().toString()));
+                                            net.minecraft.registry.Registries.PARTICLE_TYPE.getEntrySet().forEach(entry -> {
+                                                builder.suggest(entry.getKey().getValue().toString());
                                             });
                                             return builder.buildFuture();
                                         })
