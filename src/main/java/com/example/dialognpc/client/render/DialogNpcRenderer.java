@@ -74,52 +74,31 @@ public class DialogNpcRenderer extends MobEntityRenderer<DialogNpcEntity, Player
         String cacheKey = "player_" + playerName.toLowerCase();
         return DYNAMIC_TEXTURES.computeIfAbsent(cacheKey, key -> {
             try {
-                // Fetch skin URL from Mojang via playerdb.co (free API, no auth required)
-                String apiUrl = "https://playerdb.co/api/player/minecraft/" + playerName;
-                java.net.URI uri = java.net.URI.create(apiUrl);
-                java.io.InputStream stream = uri.toURL().openStream();
-                String json = new String(stream.readAllBytes());
+                // Use Crafatar API for direct skin access (simpler, no JSON parsing)
+                // Crafatar: https://crafatar.com/skins/{uuid} or /skins/{name}
+                String skinUrl = "https://crafatar.com/skins/" + playerName;
+                java.net.URI uri = java.net.URI.create(skinUrl);
+
+                // Set user-agent to avoid being blocked
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) uri.toURL().openConnection();
+                conn.setRequestProperty("User-Agent", "DialogNpcMod/1.0");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                java.io.InputStream stream = conn.getInputStream();
+                NativeImage image = NativeImage.read(stream);
                 stream.close();
+                conn.disconnect();
 
-                // Parse JSON to find skin URL
-                String skinUrl = extractSkinUrl(json);
-                if (skinUrl != null && !skinUrl.isEmpty()) {
-                    java.net.URI skinUri = java.net.URI.create(skinUrl);
-                    java.io.InputStream skinStream = skinUri.toURL().openStream();
-                    NativeImage image = NativeImage.read(skinStream);
-                    skinStream.close();
-
-                    Identifier textureId = Identifier.of("dialognpc", "player_" + playerName.toLowerCase());
-                    registerTexture(textureId, image);
-                    LOGGER.info("Loaded player skin for: {}", playerName);
-                    return textureId;
-                }
-                LOGGER.warn("Could not find skin URL for player: {}", playerName);
-                return FALLBACK;
+                Identifier textureId = Identifier.of("dialognpc", "player_" + playerName.toLowerCase());
+                registerTexture(textureId, image);
+                LOGGER.info("Loaded player skin for: {} from Crafatar", playerName);
+                return textureId;
             } catch (Exception e) {
-                LOGGER.error("Failed to load player skin for: {}", playerName, e);
+                LOGGER.error("Failed to load player skin for: {} - {}", playerName, e.getMessage());
                 return FALLBACK;
             }
         });
-    }
-
-    private String extractSkinUrl(String json) {
-        // Simple JSON parsing without external library
-        // Look for "raw" field containing the skin URL
-        int rawIndex = json.indexOf("\"raw\"");
-        if (rawIndex == -1) return null;
-
-        int colonIndex = json.indexOf(":", rawIndex);
-        if (colonIndex == -1) return null;
-
-        int quoteStart = json.indexOf("\"", colonIndex);
-        if (quoteStart == -1) return null;
-
-        int quoteEnd = json.indexOf("\"", quoteStart + 1);
-        if (quoteEnd == -1) return null;
-
-        String url = json.substring(quoteStart + 1, quoteEnd);
-        return url.startsWith("http") ? url : null;
     }
 
     private Identifier loadTextureFromUrl(String url) {
