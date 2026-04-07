@@ -39,8 +39,8 @@
 - [ ] Sistema de quests/misiones simple ligado a NPCs
 
 ### Multi-idioma
-- [ ] Soporte completo de traduccion (lang files)
-- [ ] Posibilidad de tener dialogos en diferentes idiomas
+- [x] Soporte completo de traduccion (lang files)
+- [x] Posibilidad de tener dialogos en diferentes idiomas
 
 ### Optimizaciones
 - [ ] Cache de texturas para evitar recargas
